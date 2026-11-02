@@ -1,5 +1,17 @@
 [
   {
+    "v": "2026.11.02.1",
+    "date": "2026-11-02",
+    "title": "Thèmes, police Inter et veille OLED",
+    "notes": [
+      "Cinq thèmes au choix dans Réglages, Home & Screensaver : Azion, Noir OLED, Aurore, Bleu nuit et Sable.",
+      "Toute l'interface utilise la police Inter, embarquée sur la TV.",
+      "Sans photos, la veille reste noire pour éteindre les pixels, avec des feux d'artifice de temps en temps et une petite heure qui se déplace.",
+      "L'accueil est en français, avec l'heure sur 24 h et la météo en °C.",
+      "Les mises à jour viennent maintenant de tauqram/webos4-clean-home."
+    ]
+  },
+  {
     "v": "2026.10.27.6",
     "date": "2026-10-27",
     "title": "Pick an app for power-on, one backlight control, bigger text, burn-in protection",

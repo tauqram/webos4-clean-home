@@ -181,8 +181,156 @@ body.mode-settings .gt{width:11.4rem;height:6.5rem;margin-right:.9rem;margin-bot
 #edbar .pill{display:inline-block;margin:0 1.4rem 0 0;padding:.3rem 1rem;border-radius:1rem;background:#fff;color:#0a0c11;font-weight:600}
 #edinfo{position:absolute;right:3rem;top:2.4rem;padding:.6rem 1.4rem;border-radius:1rem;background:rgba(10,12,17,.82);font-size:1.4rem;color:#dfe4ef}
 </style>
+<style id="modern">
+/* Modern Home: wide favourite cards, a hero line for the focused app, compact pill buttons, labels only on the focused app.
+   Layered over the base styles above; still Chromium 53 safe (no grid, no flex gap, no backdrop-filter). */
+:root{--bg:#07080c;--card:#151925;--dim:#8e97aa;--line:rgba(255,255,255,.08)}
+html,body{background:var(--bg)}
+#glowA,#glowB{left:-20%;top:-45%;width:110%;height:100%}
+#glowA.on,#glowB.on{opacity:.42}
+#header{height:9.4rem;padding:3rem 6rem 0 6rem;align-items:center}
+#clock{flex-direction:row;align-items:baseline}
+#time{font-size:3.6rem;font-weight:300;letter-spacing:-.04rem}
+#time small{font-size:1.4rem}
+#date{font-size:1.6rem;margin:0 0 0 1.6rem;padding-left:1.6rem;border-left:.1rem solid rgba(255,255,255,.18)}
+#weather{margin-right:2.4rem}
+#weather svg{width:3rem;height:3rem;margin-right:.9rem}
+#wtemp{font-size:2rem;font-weight:400}
+#wtemp small{font-size:1.25rem}
+#wdesc{font-size:1.15rem;margin-top:.2rem}
+.hbtn{flex-direction:row;width:auto;height:4.4rem;padding:0 1.8rem 0 1.4rem;margin-left:1rem;border-radius:2.2rem;background:rgba(255,255,255,.07);border:.1rem solid var(--line);font-size:1.3rem;color:#c3cad8}
+.hbtn svg{width:1.9rem;height:1.9rem;margin:0 .8rem 0 0}
+.hbtn .ring{display:none}
+.hbtn.foc{background:#fff;color:#07080c;transform:scale(1.06);border-color:#fff;box-shadow:0 .8rem 2.4rem rgba(0,0,0,.45)}
+body.hasbg .hbtn{background:rgba(7,8,12,.5)}
+body.hasbg .hbtn.foc{background:#fff;color:#07080c}
+#hero{height:15.6rem;padding:0 6rem;display:flex;flex-direction:column;justify-content:flex-end}
+#htitle{font-size:4.4rem;font-weight:600;letter-spacing:-.08rem;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hsub{font-size:1.4rem;color:var(--dim);margin:.8rem 0 2.6rem .2rem}
+body.hasbg #htitle{text-shadow:0 .2rem 1.2rem rgba(0,0,0,.6)}
+body.hasbg #hsub{color:#d5dbe8;text-shadow:0 .1rem .5rem rgba(0,0,0,.8)}
+.rowlabel{font-size:1.45rem;font-weight:600;letter-spacing:0;text-transform:none;color:#d7dce6;margin:0 0 1.4rem .2rem}
+#dock{margin-bottom:2.8rem;padding-top:.4rem}
+.tile .ring{left:-.45rem;top:-.45rem;right:-.45rem;bottom:-.45rem;border-width:.25rem}
+.tile .nm{font-size:1.3rem;margin-top:1rem}
+.big{width:21.6rem;margin-right:2.4rem;align-items:flex-start}
+.big .ic{width:21.6rem;height:12.2rem;border-radius:1.8rem;background:var(--card);display:flex;align-items:center;justify-content:center;box-shadow:0 .6rem 1.6rem rgba(0,0,0,.35)}
+.big .ic img{width:6.8rem;height:6.8rem;border-radius:1.6rem;box-shadow:0 .6rem 1.8rem rgba(0,0,0,.4)}
+.big .ring{border-radius:2.2rem}
+.big .nm{display:none}
+.sm{width:8.8rem;margin:0 1.9rem 1.2rem 0}
+.sm .ic{width:8.8rem;height:8.8rem;border-radius:2rem;box-shadow:0 .4rem 1.2rem rgba(0,0,0,.3)}
+.sm .ring{border-radius:2.4rem}
+.sm .nm{opacity:0;font-size:1.2rem}
+.tile.foc .ic{transform:scale(1.08);box-shadow:0 1.4rem 3rem rgba(0,0,0,.6)}
+.tile.foc .nm{transform:translateY(.6rem);opacity:1}
+/* screensaver: big thin clock, bottom left */
+#sinfo .t{font-size:9rem;font-weight:200;letter-spacing:-.3rem}
+#sinfo .d{font-size:2rem;color:#d7dce6}
+/* OLED screensaver (no photos): true black, an effect on a canvas, a small dim clock that moves every minute */
+#saver.nophoto{background:#000}
+#fx{position:absolute;left:0;top:0;width:100%;height:100%;display:none;z-index:1}
+#saver.nophoto #sinfo{z-index:3;text-shadow:none}
+#saver.nophoto #sinfo .t{font-size:4.6rem;font-weight:200;letter-spacing:-.1rem;color:#7d828c}
+#saver.nophoto #sinfo .t small{font-size:1.6rem;color:#5f646d}
+#saver.nophoto #sinfo .d,#saver.nophoto #sinfo .w{font-size:1.4rem;color:#5f646d}
+#saver.nophoto #sinfo .w svg{width:2.6rem;height:2.6rem;opacity:.6}
+#saver.nophoto #sinfo .w .p{font-size:1.2rem;color:#4c5058}
+#saver.noclock #sinfo{display:none}
+#saver.fxon #sglow{display:none !important}
+#saver.fxon{background:#000}
+
+/* ===== themes (themes.js picks one: body.th-<id>); your gallery photos, when switched on, cover the theme background ===== */
+:root{--accent:#ffffff}
+#glowA.on,#glowB.on,body.hasbg #glowA.on,body.hasbg #glowB.on{opacity:0}
+#themebg{position:fixed;left:0;top:0;width:100%;height:100%;overflow:hidden;pointer-events:none;background:var(--bg)}
+.tb1,.tb2,.tb3{position:absolute;display:none}      /* low specificity on purpose: each theme switches its layers on */
+body.hasbg #themebg,body.mode-settings #themebg{display:none}
+body.saving #themebg div{-webkit-animation-play-state:paused;animation-play-state:paused}
+.tile .ring{border-color:var(--accent)}
+.hbtn.foc,body.hasbg .hbtn.foc{background:var(--accent);border-color:var(--accent)}
+#hsub{color:var(--accent);opacity:.8}
+
+/* Noir OLED: pure black, the pixels behind the rows are off */
+body.th-noir{--bg:#000;--card:#0e0f12}
+body.th-noir #themebg{background:#000}
+
+/* Aurore: three slow drifting light curtains */
+body.th-aurore #themebg{background:linear-gradient(180deg,#04060b 0%,#060a10 100%)}
+body.th-aurore .tb1,body.th-aurore .tb2,body.th-aurore .tb3{display:block;border-radius:50%;will-change:transform}
+body.th-aurore .tb1{left:-12%;top:-38%;width:78rem;height:56rem;background:radial-gradient(closest-side,rgba(48,214,170,.5),rgba(48,214,170,0));-webkit-animation:au1 46s ease-in-out infinite alternate;animation:au1 46s ease-in-out infinite alternate}
+body.th-aurore .tb2{left:38%;top:-34%;width:84rem;height:52rem;background:radial-gradient(closest-side,rgba(126,92,255,.45),rgba(126,92,255,0));-webkit-animation:au2 58s ease-in-out infinite alternate;animation:au2 58s ease-in-out infinite alternate}
+body.th-aurore .tb3{left:12%;top:-14%;width:70rem;height:40rem;background:radial-gradient(closest-side,rgba(64,170,255,.3),rgba(64,170,255,0));-webkit-animation:au1 70s ease-in-out infinite alternate-reverse;animation:au1 70s ease-in-out infinite alternate-reverse}
+@-webkit-keyframes au1{from{-webkit-transform:translate3d(0,0,0) scale(1)}to{-webkit-transform:translate3d(18rem,4rem,0) scale(1.15)}}
+@keyframes au1{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(18rem,4rem,0) scale(1.15)}}
+@-webkit-keyframes au2{from{-webkit-transform:translate3d(0,0,0) scale(1.1)}to{-webkit-transform:translate3d(-20rem,6rem,0) scale(.95)}}
+@keyframes au2{from{transform:translate3d(0,0,0) scale(1.1)}to{transform:translate3d(-20rem,6rem,0) scale(.95)}}
+
+/* Bleu nuit: a deep sky with fixed stars, a few of them twinkling */
+body.th-bleunuit{--card:#111a30}
+body.th-bleunuit #themebg{background:radial-gradient(ellipse at 50% 125%,#1b3266 0%,#0b1430 45%,#050812 85%)}
+body.th-bleunuit .tb1,body.th-bleunuit .tb2{display:block;left:0;top:0;width:100%;height:62%}
+body.th-bleunuit .tb1{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='300'%3E%3Cg fill='%23fff'%3E%3Ccircle cx='23' cy='41' r='1' opacity='.7'/%3E%3Ccircle cx='97' cy='12' r='.8' opacity='.5'/%3E%3Ccircle cx='160' cy='88' r='1.2' opacity='.8'/%3E%3Ccircle cx='211' cy='30' r='.7' opacity='.4'/%3E%3Ccircle cx='288' cy='140' r='1' opacity='.6'/%3E%3Ccircle cx='340' cy='60' r='.8' opacity='.5'/%3E%3Ccircle cx='402' cy='110' r='1.1' opacity='.7'/%3E%3Ccircle cx='455' cy='25' r='.7' opacity='.5'/%3E%3Ccircle cx='60' cy='170' r='.8' opacity='.4'/%3E%3Ccircle cx='130' cy='230' r='1' opacity='.5'/%3E%3Ccircle cx='250' cy='260' r='.7' opacity='.3'/%3E%3Ccircle cx='380' cy='210' r='.9' opacity='.4'/%3E%3C/g%3E%3C/svg%3E") repeat;-webkit-mask-image:linear-gradient(180deg,#000 40%,transparent 100%)}
+body.th-bleunuit .tb2{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='620' height='340'%3E%3Cg fill='%23dfe8ff'%3E%3Ccircle cx='70' cy='60' r='1.6'/%3E%3Ccircle cx='330' cy='30' r='1.4'/%3E%3Ccircle cx='520' cy='150' r='1.7'/%3E%3Ccircle cx='210' cy='190' r='1.3'/%3E%3C/g%3E%3C/svg%3E") repeat;-webkit-mask-image:linear-gradient(180deg,#000 40%,transparent 100%);-webkit-animation:twk 5s ease-in-out infinite alternate;animation:twk 5s ease-in-out infinite alternate}
+@-webkit-keyframes twk{from{opacity:.25}to{opacity:1}}
+@keyframes twk{from{opacity:.25}to{opacity:1}}
+
+/* Sable: warm dusk over dunes */
+body.th-sable{--card:#24180f;--dim:#b4a38f}
+body.th-sable #themebg{background:linear-gradient(180deg,#0d0805 0%,#1c120a 55%,#2b190c 100%)}
+body.th-sable .tb1,body.th-sable .tb2{display:block}
+body.th-sable .tb1{right:-14rem;top:-24rem;width:62rem;height:62rem;border-radius:50%;background:radial-gradient(closest-side,rgba(255,170,90,.30),rgba(255,170,90,0))}
+body.th-sable .tb2{left:0;bottom:0;width:100%;height:42%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1920 450' preserveAspectRatio='none'%3E%3Cpath d='M0 210 C320 120 620 260 960 190 S1600 110 1920 200 V450 H0Z' fill='%23301d0f'/%3E%3Cpath d='M0 300 C380 230 760 340 1120 280 S1700 250 1920 300 V450 H0Z' fill='%23261709'/%3E%3Cpath d='M0 380 C420 330 900 420 1300 370 S1800 360 1920 390 V450 H0Z' fill='%231a0f06'/%3E%3C/svg%3E") no-repeat;background-size:100% 100%}
+
+/* ===== 2026 pass: Inter (the font of Azion, SIL OFL, bundled in fonts/), tabular figures, hairline surfaces ===== */
+@font-face{font-family:"Inter";src:url("fonts/inter-latin-300-normal.woff2") format("woff2");font-weight:300;font-style:normal}
+@font-face{font-family:"Inter";src:url("fonts/inter-latin-400-normal.woff2") format("woff2");font-weight:400;font-style:normal}
+@font-face{font-family:"Inter";src:url("fonts/inter-latin-500-normal.woff2") format("woff2");font-weight:500;font-style:normal}
+@font-face{font-family:"Inter";src:url("fonts/inter-latin-600-normal.woff2") format("woff2");font-weight:600;font-style:normal}
+html,body{font-family:"Inter","LG Smart UI","Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+#time,#wtemp,#sinfo .t,#date{-webkit-font-feature-settings:"tnum" 1;font-feature-settings:"tnum" 1}
+#time{font-weight:300;letter-spacing:-.02em}
+#date{font-weight:400;color:#c9ced8}
+#htitle{font-weight:600;letter-spacing:-.025em}
+#hsub{font-weight:500;letter-spacing:0}
+.rowlabel{font-weight:500;font-size:1.35rem;color:#aeb4c0}
+.hbtn{font-weight:500}
+#sinfo .t,#saver.nophoto #sinfo .t{font-weight:300;letter-spacing:-.03em}
+.big .ic{position:relative}
+.tint{display:none;position:absolute;left:0;top:0;right:0;bottom:0;border-radius:inherit}
+.big .ic img{position:relative;z-index:1}
+/* surfaces lit from above: a hairline edge and a 1px top highlight instead of heavy shadows */
+.big .ic{box-shadow:inset 0 .1rem 0 rgba(255,255,255,.07),inset 0 0 0 .1rem rgba(255,255,255,.06),0 .4rem 1.2rem rgba(0,0,0,.3)}
+.sm .ic{box-shadow:inset 0 0 0 .1rem rgba(255,255,255,.06),0 .3rem .9rem rgba(0,0,0,.28)}
+.tile .ic,.hbtn{transition:transform .18s cubic-bezier(.2,0,0,1),box-shadow .18s cubic-bezier(.2,0,0,1),background-color .18s cubic-bezier(.2,0,0,1)}
+.tile .ring{border-width:.2rem;left:-.6rem;top:-.6rem;right:-.6rem;bottom:-.6rem}
+.big .ring{border-radius:2.4rem}
+.sm .ring{border-radius:2.6rem}
+
+/* Azion: the Azion design system — graphite #161616, surfaces lit by steps (+3 %, +6 %, +12 % white), off-white text,
+   grey focus. No decoration: the light comes from above, nothing moves. */
+body.th-azion{--bg:#161616;--card:#1d1d1d;--text:#ecebe8;--dim:#aeada7;--line:rgba(255,255,255,.08)}
+body.th-azion #themebg{background:#161616}
+body.th-azion .tb1{display:block;left:0;top:0;width:100%;height:60%;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0))}
+body.th-azion #date{color:#aeada7;border-left-color:rgba(255,255,255,.12)}
+body.th-azion #time{color:#ecebe8}
+body.th-azion #htitle{color:#ecebe8}
+body.th-azion #hsub{color:#aeada7;opacity:1}
+body.th-azion .rowlabel{color:#aeada7}
+body.th-azion .hbtn{background:#1d1d1d;border-color:rgba(255,255,255,.12);color:#d6d5d0}
+body.th-azion .hbtn.foc{background:#ecebe8;border-color:#ecebe8;color:#161616;box-shadow:0 .8rem 2.4rem rgba(0,0,0,.5)}
+body.th-azion .big .ic{background:#1d1d1d !important;box-shadow:inset 0 .1rem 0 rgba(255,255,255,.06),inset 0 0 0 .1rem rgba(255,255,255,.08)}
+body.th-azion .tile.foc .ic{box-shadow:inset 0 .1rem 0 rgba(255,255,255,.06),inset 0 0 0 .1rem rgba(255,255,255,.16),0 1.2rem 3rem rgba(0,0,0,.6)}
+body.th-azion .big.foc .ic{background:#2a2a2a !important}
+body.th-azion .big .ic{border-radius:1.4rem}
+body.th-azion .big .ring{border-radius:2rem}
+body.th-azion .big .tint{display:block;opacity:.16}
+body.th-azion .big.foc .tint{opacity:.24}
+body.th-azion .tile .ring{border-color:rgba(236,235,232,.7)}
+</style>
 </head>
 <body>
+<div id="themebg"><div class="tb1"></div><div class="tb2"></div><div class="tb3"></div></div>
 <div id="bgA" class="bgl"></div><div id="bgB" class="bgl"></div><div id="scrim2"></div>
 <div id="glowA"></div><div id="glowB"></div>
 <div id="view">
@@ -190,18 +338,18 @@ body.mode-settings .gt{width:11.4rem;height:6.5rem;margin-right:.9rem;margin-bot
     <div id="clock"><div id="time"></div><div id="date"></div></div>
     <div id="right">
       <div id="weather"><span id="wicon"></span><div><div id="wtemp"></div><div id="wdesc"></div></div></div>
-      <div class="hbtn" id="b-inputs"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span>Inputs</span><div class="ring"></div></div>
-      <div class="hbtn" id="b-net"><svg viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor"/></svg><span id="netlabel">Network</span><div class="ring"></div></div>
-      <div class="hbtn" id="b-settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Settings</span><div class="ring"></div></div>
+      <div class="hbtn" id="b-inputs"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span>Entrées</span><div class="ring"></div></div>
+      <div class="hbtn" id="b-net"><svg viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor"/></svg><span id="netlabel">Réseau</span><div class="ring"></div></div>
+      <div class="hbtn" id="b-settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Réglages</span><div class="ring"></div></div>
     </div>
   </div>
-  <div id="hero"></div>
-  <div class="row"><div class="rowlabel">Favorites</div><div id="dock"></div></div>
-  <div class="row"><div class="rowlabel">Apps</div><div id="grid"></div></div>
+  <div id="hero"><div id="htitle"></div><div id="hsub"></div></div>
+  <div class="row"><div class="rowlabel">Favoris</div><div id="dock"></div></div>
+  <div class="row"><div class="rowlabel">Applications</div><div id="grid"></div></div>
 </div>
-<div id="saver"><div id="sglow"></div><div id="sdim"></div><div id="scrimS"></div>
+<div id="saver"><canvas id="fx"></canvas><div id="sglow"></div><div id="sdim"></div><div id="scrimS"></div>
   <div id="sinfo"><div class="t"></div><div class="d"></div><div class="w"></div></div></div>
-<div id="panel"><div id="pbox"><div id="ptitle"></div><div id="plist"></div><div id="phint">OK to select &nbsp;&middot;&nbsp; Back to close</div></div></div>
+<div id="panel"><div id="pbox"><div id="ptitle"></div><div id="plist"></div><div id="phint">OK pour choisir &nbsp;&middot;&nbsp; Retour pour fermer</div></div></div>
 <div id="settings">
   <div id="sethead"><h1>Settings</h1><span>&#9664; &#9654; change &nbsp;&middot;&nbsp; OK select &nbsp;&middot;&nbsp; Back</span></div>
   <div id="setcatsbox"><div id="setcats"></div></div><div id="cattip"></div>
@@ -215,6 +363,7 @@ body.mode-settings .gt{width:11.4rem;height:6.5rem;margin-right:.9rem;margin-bot
 <div id="toast"></div>
 <!--MOCK-->
 <script src="stage.js"></script>
+<script src="themes.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

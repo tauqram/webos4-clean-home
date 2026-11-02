@@ -14,7 +14,7 @@
 CONF=$STATE/update.conf; LAST=$STATE/update-last; AVAIL=$STATE/update-available; NOTES=$STATE/update-notes.json
 STATUS=$STATE/update-status; RESULT=$STATE/update-result; FAILED=$STATE/update-failed; ERR=$STATE/update-error; FILES=$STATE/installed.files
 LOCK=/tmp/tvd-update.lock; W=/tmp/tvd-update; HOOK=/var/lib/webosbrew/init.d/zz-debloat
-DEF_REPO=TristanG115/webos4-clean-home; DEF_BRANCH=main
+DEF_REPO=tauqram/webos4-clean-home; DEF_BRANCH=main
 conf_get() { v=$(sed -n "s/^$1=//p" "$CONF" 2>/dev/null | head -1); echo "${v:-$2}"; }
 conf_set() { { grep -v "^$1=" "$CONF" 2>/dev/null; echo "$1=$2"; } > "$CONF.tmp" && mv "$CONF.tmp" "$CONF"; }
 installed() { v=$(head -1 "$D/VERSION" 2>/dev/null | tr -d '\r '); echo "${v:-0.0.0.0}"; }

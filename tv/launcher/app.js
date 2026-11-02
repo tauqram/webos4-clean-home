@@ -21,12 +21,13 @@ var CFG = {
 };
 // user settings, stored on the TV in state/settings.json (edited here, on the phone page, or by hand)
 var DEFAULTS = {
-  weather: {mode: 'auto', zip: '', unit: 'F'},
-  clock24: false,
+  weather: {mode: 'auto', zip: '', unit: 'C'},
+  clock24: true,
   bg: {on: true, everyMin: 10},
-  saver: {on: true, idleMin: 2, photos: true, slideSec: 300, weather: true, dim: 20, level: 15},
+  saver: {on: true, idleMin: 2, photos: true, slideSec: 300, weather: true, dim: 20, level: 15, fx: 'theme', clock: true},
+  theme: 'auto',
   ui: {hideCursor: true},
-  dock: ['netflix','youtube.leanback.v4','hulu','com.disney.disneyplus-prod'],
+  dock: ['netflix','youtube.leanback.v4','amazon','com.disney.disneyplus-prod'],
   hide: ['webos.day','com.webos.app.homeconnect','com.webos.app.home','com.webos.app.fullhome']
 };
 var S = clone(DEFAULTS);
@@ -80,14 +81,14 @@ function saveSettings(){
 }
 function setPath(path, v){ var p = path.split('.'), o = S; for (var i = 0; i < p.length - 1; i++) o = o[p[i]]; o[p[p.length - 1]] = v; saveSettings(); settingsChanged(path); }
 function getPath(path){ var p = path.split('.'), o = S; for (var i = 0; i < p.length; i++) o = o[p[i]]; return o; }
-function applyUi(){ cls(document.body, 'nocursor', !!(S.ui && S.ui.hideCursor)); }
+function applyUi(){ cls(document.body, 'nocursor', !!(S.ui && S.ui.hideCursor)); if (window.Theme && !SETMODE) Theme.apply(S.theme); }
 function settingsChanged(path){
   if (SETMODE) { if (path.indexOf('ui.') === 0) applyUi(); return; }
   if (path.indexOf('weather.') === 0) wxLoad(true);
   if (path.indexOf('clock24') === 0) { lastT = ''; tick(); }
   if (path.indexOf('bg.') === 0) { bgApply(true); }
   if (path.indexOf('saver.') === 0) activity();
-  if (path.indexOf('ui.') === 0) applyUi();
+  if (path.indexOf('ui.') === 0 || path === 'theme') applyUi();
 }
 function applyRemoteSettings(j){
   if (!j || typeof j !== 'object') return;
@@ -101,15 +102,16 @@ function applyRemoteSettings(j){
 function loadSettings(cb){ api('/api/settings', function(err, j){ if (!err) applyRemoteSettings(j); if (cb) cb(); }); }
 
 /* ================= clock ================= */
-var DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'], MONS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+var DAYS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'], MONS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 function fmtTime(d){ var h = d.getHours(), ap = ''; if (!S.clock24) { ap = h >= 12 ? 'PM' : 'AM'; h = h % 12; if (h === 0) h = 12; } else h = p2(h); return {t: h + ':' + p2(d.getMinutes()), ap: ap}; }
-function fmtDate(d){ return DAYS[d.getDay()] + ', ' + MONS[d.getMonth()] + ' ' + d.getDate(); }
-function fmtShort(d){ return DAYS[d.getDay()].slice(0, 3) + ', ' + MONS[d.getMonth()].slice(0, 3) + ' ' + d.getDate(); }
+function fmtDate(d){ var s = DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONS[d.getMonth()]; return s.charAt(0).toUpperCase() + s.slice(1); }
+var MONS3 = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+function fmtShort(d){ var s = DAYS[d.getDay()].slice(0, 3) + '. ' + d.getDate() + ' ' + MONS3[d.getMonth()]; return s.charAt(0).toUpperCase() + s.slice(1); }
 var lastT = '', lastD = '';
 function tick(){
   var d = new Date(), f = fmtTime(d), ds = fmtDate(d), ts = f.t + ' ' + f.ap;
   if (ts !== lastT) { lastT = ts; $('time').innerHTML = f.t + (f.ap ? '<small>' + f.ap + '</small>' : ''); if (saverOn) $('sinfo').firstChild.innerHTML = f.t + (f.ap ? '<small>' + f.ap + '</small>' : ''); }
-  if (ds !== lastD) { lastD = ds; $('date').textContent = ds; if (saverOn) $('sinfo').childNodes[1].textContent = ds; wxRender(); }
+  if (ds !== lastD) { lastD = ds; applyUi(); $('date').textContent = ds; if (saverOn) $('sinfo').childNodes[1].textContent = ds; wxRender(); }
 }
 
 /* ================= weather (auto location by IP, or ZIP) ================= */
@@ -124,20 +126,20 @@ var WX = {
   fog:'<svg viewBox="0 0 48 48"><g stroke="#b8c1d3" stroke-width="3.5" stroke-linecap="round"><path d="M8 17h32M12 25h28M8 33h32"/></g></svg>'
 };
 function wxDecode(code, isDay){
-  if (code === 0) return [isDay ? 'sun' : 'moon', 'Clear'];
-  if (code === 1 || code === 2) return [isDay ? 'part' : 'cloud', code === 1 ? 'Mostly clear' : 'Partly cloudy'];
-  if (code === 3) return ['cloud', 'Cloudy'];
-  if (code === 45 || code === 48) return ['fog', 'Fog'];
-  if (code >= 51 && code <= 57) return ['rain', 'Drizzle'];
-  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return ['rain', 'Rain'];
-  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return ['snow', 'Snow'];
-  if (code >= 95) return ['storm', 'Thunderstorms'];
-  return ['cloud', 'Cloudy'];
+  if (code === 0) return [isDay ? 'sun' : 'moon', 'Ciel dégagé'];
+  if (code === 1 || code === 2) return [isDay ? 'part' : 'cloud', code === 1 ? 'Plutôt dégagé' : 'Partiellement nuageux'];
+  if (code === 3) return ['cloud', 'Nuageux'];
+  if (code === 45 || code === 48) return ['fog', 'Brouillard'];
+  if (code >= 51 && code <= 57) return ['rain', 'Bruine'];
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return ['rain', 'Pluie'];
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return ['snow', 'Neige'];
+  if (code >= 95) return ['storm', 'Orages'];
+  return ['cloud', 'Nuageux'];
 }
 var wx = null, wxAt = 0;
 function wxRender(){
   if (!wx) return;
-  var d = wxDecode(wx.code, wx.day), now = new Date(), hl = wx.hi != null ? 'H ' + Math.round(wx.hi) + '°  L ' + Math.round(wx.lo) + '°  ·  ' : '';
+  var d = wxDecode(wx.code, wx.day), now = new Date(), hl = wx.hi != null ? 'Max ' + Math.round(wx.hi) + '°  Min ' + Math.round(wx.lo) + '°  ·  ' : '';
   $('wicon').innerHTML = WX[d[0]] || '';
   $('wtemp').innerHTML = Math.round(wx.temp) + '°<small>' + d[1] + '</small>';
   $('wdesc').textContent = hl + wx.place;
@@ -198,6 +200,10 @@ function glowFor(a){
 }
 function mkTile(a, big){
   var t = el('div', 'tile ' + (big ? 'big' : 'sm')), ic = el('div', 'ic'), img = el('img'); img.alt = ''; img.src = iconUrl(a.largeIcon || a.icon);
+  if (big) {
+    ic.style.background = 'linear-gradient(150deg, rgba(255,255,255,.12) 0%, rgba(7,8,12,.55) 100%), ' + glowFor(a);   // wide card tinted with the app's colour
+    var tint = el('div', 'tint'); tint.style.background = glowFor(a); ic.appendChild(tint);      // a flat tint, used by themes that want it (Azion)
+  }
   ic.appendChild(img); ic.appendChild(el('div', 'ring')); t.appendChild(ic);
   var nm = el('div', 'nm'); nm.textContent = a.title || a.id; t.appendChild(nm); t._app = a; return t;
 }
@@ -221,6 +227,14 @@ function loadApps(cb){
   });
 }
 var lastFocus = null, glowSide = 0;
+// the large line above the rows names whatever has the focus
+var HERO_BTN = {'b-inputs': ['Entrées', 'HDMI, TV en direct et autres sources'], 'b-net': ['Réseau', 'Connexion et adresse de la TV'], 'b-settings': ['Réglages', 'Image, son, veille et confidentialité']};
+function setHero(e){
+  var t = $('htitle'), s = $('hsub'); if (!t || !s) return;
+  var b = HERO_BTN[e.id];
+  t.textContent = b ? b[0] : (e._app ? e._app.title || e._app.id : '');
+  s.textContent = b ? b[1] : 'OK pour ouvrir';
+}
 function setGlow(color){
   var a = $('glowA'), b = $('glowB'), n = glowSide ? a : b, o = glowSide ? b : a; glowSide = 1 - glowSide;
   n.style.background = 'radial-gradient(ellipse at 50% 0%, ' + color + ' 0%, rgba(0,0,0,0) 62%)'; n.className = 'on'; o.className = '';
@@ -234,6 +248,7 @@ function focusItem(r, c, keepX){
   lastFocus = e;
   if (!keepX) { var rc = e.getBoundingClientRect(); lastX = rc.left + rc.width / 2; }
   setGlow(glowFor(e._app));
+  setHero(e);
   var rc2 = e.getBoundingClientRect(), vh = window.innerHeight, fs = parseFloat(getComputedStyle(document.documentElement).fontSize);
   var bottom = rc2.bottom + viewY + 5 * fs, want = bottom > vh ? bottom - vh : 0;
   if (R <= 1) want = 0;
@@ -340,16 +355,17 @@ function saverStart(){
   // free the Home background while the screensaver runs: two big photos at once would make the TV swap
   ['bgA', 'bgB'].forEach(function(id){ var l = $(id); l.className = 'bgl'; layerStage(l).lastChild.removeAttribute('src'); }); setBodyBg(false);
   var withPhotos = S.saver.photos && photos.length > 0 && !LOWMEM;
-  $('saver').className = 'on' + (withPhotos ? '' : ' nophoto');
+  $('saver').className = 'on' + (withPhotos ? '' : ' nophoto') + (S.saver.clock === false ? ' noclock' : '') + (withPhotos || S.saver.fx === 'none' ? '' : ' fxon'); cls(document.body, 'saving', true);
   $('sdim').style.opacity = ((S.saver.dim === undefined ? 30 : S.saver.dim) / 100);
   blDim(); api('/api/history?v=saver', noop);      // Back forgets where you were, if the options say so
   $('scrimS').style.display = withPhotos ? 'block' : 'none';
-  if (withPhotos) { pIx = (bgIx + 1) % photos.length; showNext(); } else { drift(); }
+  if (withPhotos) { pIx = (bgIx + 1) % photos.length; showNext(); } else { drift(); if (window.Theme) Theme.saverFx($('fx'), S.saver.fx); }
   dlog('saver on photos=' + withPhotos);
 }
 function saverStop(){
   if (!saverOn) return;
-  saverOn = false; clearTimeout(slideT); clearTimeout(driftT); $('saver').className = ''; $('sdim').style.opacity = 0; blRestore();
+  saverOn = false; clearTimeout(slideT); clearTimeout(driftT); $('saver').className = ''; cls(document.body, 'saving', false);
+  if (window.Theme) Theme.saverFxStop(); $('fx').style.display = 'none'; $('sdim').style.opacity = 0; blRestore();
   var sv = svStages(); sv[0].className = 'stage'; sv[1].className = 'stage';
   var s = $('sinfo'); s.style.left = ''; s.style.bottom = '';
   setTimeout(function(){ if (!saverOn) { sv[0].lastChild.removeAttribute('src'); sv[1].lastChild.removeAttribute('src'); } }, 1500);
@@ -368,7 +384,7 @@ function panelOpen(title, list){
 }
 function panelFocus(i){ pIdx = Math.max(0, Math.min(pItems.length - 1, i)); pItems.forEach(function(d, k){ d.className = 'pitem' + (k === pIdx ? ' foc' : ''); }); }
 function panelClose(){ if (mtop() === 'panel') mpop('panel'); $('panel').className = ''; if (INPMODE) apiPost('/api/settings/close?id=inputs', ''); }      // the Inputs overlay is only its panel: closing it ends the page
-function openInputs(){ panelOpen('Inputs', CFG.inputs.map(function(i){ return [i[1], '', function(){ panelClose(); launch(i[0]); }]; })); }
+function openInputs(){ panelOpen('Entrées', CFG.inputs.map(function(i){ return [i[1], '', function(){ panelClose(); launch(i[0]); }]; })); }
 function openNet(){
   api('/api/net', function(err, j){
     var l = [];
@@ -378,7 +394,7 @@ function openNet(){
       l.push(['Internet', j.isInternetConnectionAvailable ? 'available' : 'not available']);
     } else l.push(['Network status', 'unavailable']);
     l.push(['More network settings', '', function(){ panelClose(); openSettings('net'); }]);
-    panelOpen('Network', l); for (var i = 0; i < pItems.length; i++) if (pItems[i]._pick) { panelFocus(i); break; }
+    panelOpen('Réseau', l); for (var i = 0; i < pItems.length; i++) if (pItems[i]._pick) { panelFocus(i); break; }
   });
 }
 function activate(){
@@ -528,12 +544,15 @@ cats = [
     act('All settings', 'LG’s own full Settings app', function(){ launch('com.palm.app.settings'); })
   ]; }},
   {id: 'home', name: 'Home & Screensaver', icon: 'home', title: 'Home & Screensaver', desc: 'Background photos, the idle (AFK) screen and the clock.', build: function(){ return [
+    chc('Thème', 'Fond, couleur d’accent et animation de veille. Automatique = le thème de la saison quand il y en a un', window.Theme ? Theme.options() : [['auto', 'Automatique']], function(){ return S.theme || 'auto'; }, function(v){ setPath('theme', v); }),
     tgl('Photo background on Home', 'Uses the photos in your gallery', function(){ return S.bg.on; }, function(b){ setPath('bg.on', b); }),
     chc('Change background every', '', [[5,'5 min'],[10,'10 min'],[20,'20 min'],[30,'30 min'],[60,'1 hour']], function(){ return S.bg.everyMin; }, function(v){ setPath('bg.everyMin', v); }),
     tgl('Screensaver when idle', 'Clock, date and weather after a while', function(){ return S.saver.on; }, function(b){ setPath('saver.on', b); }),
     chc('Start after', '', [[1,'1 min'],[2,'2 min'],[5,'5 min'],[10,'10 min'],[15,'15 min'],[30,'30 min']], function(){ return S.saver.idleMin; }, function(v){ setPath('saver.idleMin', v); }),
     tgl('Show gallery photos in screensaver', 'Off = dark screen with clock', function(){ return S.saver.photos; }, function(b){ setPath('saver.photos', b); }),
     chc('Photo changes every', 'Slow is easier on the eyes and on the TV', [[12,'12 s'],[30,'30 s'],[60,'1 min'],[120,'2 min'],[300,'5 min'],[600,'10 min'],[900,'15 min']], function(){ return S.saver.slideSec; }, function(v){ setPath('saver.slideSec', v); }),
+    chc('Animation de veille', 'Sans photos, la veille reste noire (pixels éteints) avec cette animation de temps en temps', [['theme', 'Selon le thème'], ['fireworks', 'Feux d’artifice'], ['none', 'Aucune (écran noir)']], function(){ return S.saver.fx || 'theme'; }, function(v){ setPath('saver.fx', v); }),
+    tgl('Heure pendant la veille', 'Petite et grise, elle change de place chaque minute', function(){ return S.saver.clock !== false; }, function(b){ setPath('saver.clock', b); }),
     tgl('Show weather in screensaver', '', function(){ return S.saver.weather; }, function(b){ setPath('saver.weather', b); wxRender(); }),
     sld('Screensaver dimming', 'Darkens the photo so the screensaver is easy on the eyes; the clock stays bright. 0 = no dimming', 0, 80, 5, function(){ return S.saver.dim === undefined ? 30 : S.saver.dim; }, function(v){ setPath('saver.dim', v); }),
     sld('Screensaver backlight', function(){ var b = parseInt(BRV, 10); b = isNaN(b) ? 100 : b; return 'Backlight while the screensaver runs, on LG’s 0–100 scale (never brighter than your normal ' + b + '). Put back as soon as you wake the TV.'; }, 5, 100, 5, function(){ return S.saver.level === undefined ? 15 : S.saver.level; }, function(v){ setPath('saver.level', v); }),
@@ -1038,7 +1057,7 @@ document.addEventListener('click', function(e){
 });
 
 /* ================= lifecycle ================= */
-function netLabel(){ api('/api/net', function(err, j){ if (!j || !j.returnValue) return; $('netlabel').textContent = (j.wired && j.wired.state === 'connected') ? 'Ethernet' : (j.wifi && j.wifi.state === 'connected') ? 'Wi-Fi' : 'Offline'; }); }
+function netLabel(){ api('/api/net', function(err, j){ if (!j || !j.returnValue) return; $('netlabel').textContent = (j.wired && j.wired.state === 'connected') ? 'Ethernet' : (j.wifi && j.wifi.state === 'connected') ? 'Wi-Fi' : 'Hors ligne'; }); }
 var appsAt = 0;
 function onShow(){
   tick(); activity();
