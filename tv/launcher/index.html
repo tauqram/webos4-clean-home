@@ -306,13 +306,17 @@ html,body{font-family:"Inter","LG Smart UI","Segoe UI",Helvetica,Arial,sans-seri
 /* surfaces lit from above: a hairline edge and a 1px top highlight instead of heavy shadows */
 .big .ic{box-shadow:inset 0 .1rem 0 rgba(255,255,255,.07),inset 0 0 0 .1rem rgba(255,255,255,.06),0 .4rem 1.2rem rgba(0,0,0,.3)}
 .sm .ic{box-shadow:inset 0 0 0 .1rem rgba(255,255,255,.06),0 .3rem .9rem rgba(0,0,0,.28)}
-.tile .ic,.hbtn{transition:transform .18s cubic-bezier(.2,0,0,1),box-shadow .18s cubic-bezier(.2,0,0,1),background-color .18s cubic-bezier(.2,0,0,1)}
+.tile .ic{transition:transform .18s cubic-bezier(.2,0,0,1)}
+/* header buttons: colour, text and outline fade together (a snap of the text colour under a fading fill looked like a flash on the TV);
+   no animated shadow: a blurred shadow repainted every frame is what made the header stutter on the TV's GPU */
+.hbtn{transition:transform .2s cubic-bezier(.2,0,0,1),background-color .2s ease,color .2s ease,border-color .2s ease}
+.hbtn.foc,body.th-azion .hbtn.foc{box-shadow:none}
 .tile .ring{border-width:.2rem;left:-.6rem;top:-.6rem;right:-.6rem;bottom:-.6rem}
 .big .ring{border-radius:2.4rem}
 .sm .ring{border-radius:2.6rem}
 /* favourites: LG's app icons are square artwork with their own background, so they fill the whole card (like LG's own bar) instead of a small icon floating in a wide card */
 .big{width:12.4rem;margin-right:2.6rem}
-.big .ic{width:12.4rem;height:12.4rem;border-radius:2.2rem;overflow:hidden}
+.big .ic{width:12.4rem;height:12.4rem;border-radius:2.2rem}      /* no overflow:hidden: the rounded clip of a scaling layer lagged a frame on the TV and showed the icon's square corners; the img rounds itself */
 .big .ic img{width:100%;height:100%;border-radius:inherit;box-shadow:none;object-fit:cover}
 .big .ring{border-radius:2.7rem}
 body.th-azion .big .ic{border-radius:2.2rem}
