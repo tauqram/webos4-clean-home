@@ -13,6 +13,7 @@ if (MOCK && /mode=inputs/.test(location.search)) MODE = 'inputs';
 var INPMODE = MODE === 'inputs';          // the Inputs overlay: only the Inputs panel (replaces LG's input picker)
 var SETMODE = MODE === 'settings' || INPMODE;   // both overlays share the "no Home behaviour" switches
 var CFG = {
+  iconInset: {'amazon.alexa': 1},      // apps whose icon is drawn right to its edge: shown a little inside the tile so the rounding does not cut it
   glow: {'netflix':'#e50914','youtube.leanback.v4':'#ff1f3d','hulu':'#1ce783','com.disney.disneyplus-prod':'#2a5bff','amazon':'#00a8e1',
          'com.apple.appletv':'#9aa3b5','com.wbd.stream':'#5b3dff','com.peacock.tv':'#f5c518','spotify-beehive':'#1db954','com.plutotv.app':'#fff200','com.tubitv.ott.tubi':'#7a2bff'},
   inputs: [['com.webos.app.hdmi1','HDMI 1'],['com.webos.app.hdmi2','HDMI 2'],['com.webos.app.hdmi3','HDMI 3'],['com.webos.app.hdmi4','HDMI 4'],
@@ -204,7 +205,7 @@ function mkTile(a, big){
   var t = el('div', 'tile ' + (big ? 'big' : 'sm')), ic = el('div', 'ic'), img = el('img'); img.alt = ''; img.src = iconUrl(a.largeIcon || a.icon);
   // LG's own Home paints each tile with the app's iconColor and draws the (often transparent) icon over it: do the same, so icons fill their tile as on LG's bar
   var tb = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(a.iconColor || '') ? a.iconColor : '';
-  if (tb) { ic.style.setProperty('--tb', tb); ic.className += ' lgc'; }
+  if (tb) { ic.style.setProperty('--tb', tb); ic.className += ' lgc' + (CFG.iconInset[a.id] ? ' ins' : ''); }
   else if (big) {
     ic.style.background ='linear-gradient(150deg, rgba(255,255,255,.12) 0%, rgba(7,8,12,.55) 100%), ' + glowFor(a);   // wide card tinted with the app's colour
     var tint = el('div', 'tint'); tint.style.background = glowFor(a); ic.appendChild(tint);      // a flat tint, used by themes that want it (Azion)
@@ -1076,6 +1077,7 @@ function tedOpen(){
 function tedTile(){ for (var r = 0; r < rows.length; r++) for (var c = 0; c < rows[r].length; c++) if (rows[r][c]._app && rows[r][c]._app.id === ted.id) return [r, c]; return null; }
 // (re)draws the edit decorations on the tile of ted.id, wherever it is now
 function tedDraw(){
+  [].forEach.call(document.querySelectorAll('.tile.nbl,.tile.nbr'), function(n){ cls(n, 'nbl', false); cls(n, 'nbr', false); });
   [].forEach.call(document.querySelectorAll('.tile.edit'), function(n){ cls(n, 'edit', false); cls(n, 'onbtn', false); [].slice.call(n.querySelectorAll('.tmenu,.tarr')).forEach(function(x){ n.removeChild(x); }); });
   if (!ted) return;
   var p = tedTile(); if (!p) { tedClose(); return; }
@@ -1087,6 +1089,7 @@ function tedDraw(){
   if (i > 0) { var l = el('div', 'tarr l', SVG_L); t.appendChild(l); }
   if (i >= 0 && i < sib.length - 1) { var r2 = el('div', 'tarr r', SVG_R); t.appendChild(r2); }
   cls(t, 'edit', true); cls(t, 'onbtn', ted.sel >= 0);
+  rows[p[0]].forEach(function(n, i){ if (i !== p[1]) cls(n, i < p[1] ? 'nbl' : 'nbr', true); });      // the rest of the line steps aside so the arrows have room
   $('htitle').textContent = (t._app.title || t._app.id);
   $('hsub').textContent = ted.sel < 0 ? '◀ ▶ pour déplacer  ·  ▲ favori ou masquer  ·  OK pour terminer'
     : ted.sel === 0 ? (fav ? 'OK pour retirer des favoris' : (S.dock.length >= FAV_MAX ? FAV_MAX + ' favoris au maximum : retires-en un d’abord' : 'OK pour ajouter aux favoris')) + '  ·  ▼ pour revenir'

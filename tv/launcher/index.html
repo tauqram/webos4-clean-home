@@ -314,16 +314,17 @@ html,body{font-family:"Inter","LG Smart UI","Segoe UI",Helvetica,Arial,sans-seri
 body.th-azion .big .ic{border-radius:2.2rem}
 html body .tile .ic.lgc,html body.th-azion .tile .ic.lgc{background:var(--tb) !important}
 .tile .ic.lgc img{background:transparent}
-/* like LG's bar: the icon sits inside its painted tile with a small margin (the tile colour is the icon's own background, so full-bleed icons look the same and icons drawn to the edge, like Alexa, are no longer cut) */
-.tile .ic.lgc{display:flex;align-items:center;justify-content:center}
-.tile .ic.lgc img{width:88%;height:88%;object-fit:contain;border-radius:0}
+/* the icon fills its tile and is clipped by the tile's rounding (an inset icon shows the PNG's own dark corner pixels).
+   Icons drawn to their very edge (CFG.iconInset, e.g. Alexa) sit a little inside, with their own smaller rounding. */
+.tile .ic.ins{display:flex;align-items:center;justify-content:center}
+.tile .ic.ins img{width:90%;height:90%;object-fit:contain;border-radius:1.4rem}
 /* long press OK on an app: edit mode. Two round buttons above the tile (favourite, hide), arrows beside it to move it */
 .tile.edit{z-index:5}
 .tile.edit .ic{animation:tvwob .5s ease-in-out infinite alternate}
 @keyframes tvwob{from{transform:scale(1.08) rotate(-1.4deg)}to{transform:scale(1.08) rotate(1.4deg)}}
 .tile.edit .ring{opacity:.95;border-color:var(--accent,#fff)}
 .tile.edit.onbtn .ring{opacity:.35}
-.tmenu{position:absolute;left:50%;bottom:100%;margin-bottom:.9rem;display:flex;transform:translateX(-50%);z-index:6;white-space:nowrap}
+.tmenu{position:absolute;left:50%;bottom:100%;margin-bottom:1.7rem;display:flex;transform:translateX(-50%);z-index:6;white-space:nowrap}
 .tb{width:4.6rem;height:4.6rem;margin:0 .5rem;border-radius:50%;background:rgba(20,22,28,.92);box-shadow:0 .4rem 1.4rem rgba(0,0,0,.55),inset 0 0 0 .12rem rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;color:#e8e8e8;transition:transform .15s,background-color .15s,color .15s}
 .tb svg{width:2.3rem;height:2.3rem;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .tb.on svg{fill:currentColor}
@@ -332,7 +333,11 @@ html body .tile .ic.lgc,html body.th-azion .tile .ic.lgc{background:var(--tb) !i
 .tb.foc.on{color:#c98a00}
 .tarr{position:absolute;top:0;width:2.6rem;display:flex;align-items:center;justify-content:center;color:#fff;opacity:.9;z-index:6;text-shadow:0 .1rem .6rem rgba(0,0,0,.9)}
 .tarr svg{width:2.4rem;height:2.4rem;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 .1rem .3rem rgba(0,0,0,.8))}
-.tarr.l{left:-3.2rem}.tarr.r{right:-3.2rem}
+.tarr.l{left:-3rem}.tarr.r{right:-3rem}
+/* the neighbours step aside so the arrows have room */
+.tile{transition:transform .18s cubic-bezier(.2,0,0,1)}
+.tile.nbl{transform:translateX(-2.2rem)}.tile.nbr{transform:translateX(2.2rem)}
+.big .tmenu{margin-bottom:1.1rem}
 .big .tarr{height:12.4rem}.sm .tarr{height:9.6rem}
 .tile.edit.onbtn .tarr{opacity:.25}
 
