@@ -43,7 +43,8 @@ echo; echo "What this TV supports (decided from facts about it, saved in state/c
 ./tv.sh 'sh /media/developer/tv-debloat/caps.sh write | grep "^feature_"'
 
 step "5/7 debloat, one item at a time (undo: ./revert.sh, or sh debloat.sh undo <item>)"
-ITEMS=$(./tv.sh 'grep -v "^#" /media/developer/tv-debloat/services.tsv | cut -d"|" -f1' | tr '\n' ' ')
+# only the items switched ON (state/svc.conf, else the default column of services.tsv), the same rule debloat.sh apply uses at boot
+ITEMS=$(./tv.sh 'cd /media/developer/tv-debloat; for i in $(grep -v "^#" services.tsv | cut -d"|" -f1); do v=$(sed -n "s/^$i=//p" state/svc.conf 2>/dev/null | tail -1); [ -z "$v" ] && v=$(awk -F"|" -v id="$i" "\$1==id{print \$3}" services.tsv); [ "$i" = updates ] && v=on; [ "$v" = on ] && echo $i; done' | tr '\n' ' ')
 echo "items: $ITEMS"
 ask "Apply them with the default switches?" && for i in $ITEMS; do
   ./tv.sh "sh /media/developer/tv-debloat/debloat.sh apply $i" 2>&1 | head -2
