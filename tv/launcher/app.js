@@ -13,7 +13,9 @@ if (MOCK && /mode=inputs/.test(location.search)) MODE = 'inputs';
 var INPMODE = MODE === 'inputs';          // the Inputs overlay: only the Inputs panel (replaces LG's input picker)
 var SETMODE = MODE === 'settings' || INPMODE;   // both overlays share the "no Home behaviour" switches
 var CFG = {
-  iconInset: {'amazon.alexa': 1},      // apps whose icon is drawn right to its edge: shown a little inside the tile so the rounding does not cut it
+  iconInset: {'amazon.alexa': 1},
+  // apps that ship a placeholder icon, matched by title (their id can be the same as the original app's): our own drawing + tile colour
+  iconByTitle: {'YouTube AdFree': {c: '#ff0033', src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Crect width='260' height='260' fill='%23ff0033'/%3E%3Crect x='50' y='72' width='160' height='116' rx='34' fill='%23fff'/%3E%3Cpath d='M112 104 L158 130 L112 156 Z' fill='%23ff0033'/%3E%3C/svg%3E"}},      // apps whose icon is drawn right to its edge: shown a little inside the tile so the rounding does not cut it
   glow: {'netflix':'#e50914','youtube.leanback.v4':'#ff1f3d','hulu':'#1ce783','com.disney.disneyplus-prod':'#2a5bff','amazon':'#00a8e1',
          'com.apple.appletv':'#9aa3b5','com.wbd.stream':'#5b3dff','com.peacock.tv':'#f5c518','spotify-beehive':'#1db954','com.plutotv.app':'#fff200','com.tubitv.ott.tubi':'#7a2bff'},
   inputs: [['com.webos.app.hdmi1','HDMI 1'],['com.webos.app.hdmi2','HDMI 2'],['com.webos.app.hdmi3','HDMI 3'],['com.webos.app.hdmi4','HDMI 4'],
@@ -202,6 +204,7 @@ function glowFor(a){
   var h = 0, s = a.id || ''; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return 'hsl(' + h + ',70%,55%)';
 }
 function mkTile(a, big){
+  var ov = CFG.iconByTitle[a.title]; if (ov) { a = clone(a); a.iconColor = ov.c; a.largeIcon = ov.src; }
   var t = el('div', 'tile ' + (big ? 'big' : 'sm')), ic = el('div', 'ic'), img = el('img'); img.alt = ''; img.src = iconUrl(a.largeIcon || a.icon);
   // LG's own Home paints each tile with the app's iconColor and draws the (often transparent) icon over it: do the same, so icons fill their tile as on LG's bar
   var tb = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(a.iconColor || '') ? a.iconColor : '';
