@@ -47,6 +47,8 @@ ram_sync() {
   # the overlays (Settings, Inputs) are the same page started in another mode (the mode is chosen by the file name: see MODE in app.js)
   mkhtml settings Settings "$RAMDIR/settings.html" || return 1
   mkhtml inputs Inputs "$RAMDIR/inputs.html" || return 1
+  # a fresh install has no photos folder yet (it is git-ignored): create it so the bind mount cannot fail
+  mkdir -p "$D/launcher/photos" || return 1
   is_mounted "$RAMDIR/photos" || mount --bind "$D/launcher/photos" "$RAMDIR/photos" || return 1
   chmod -R go-w "$RAMDIR"; touch "$RAMDIR/.complete"; return 0
 }
