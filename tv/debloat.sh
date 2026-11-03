@@ -37,7 +37,7 @@ LGSET() { lun luna://com.webos.settingsservice/setSystemSettings "$1" >/dev/null
 # --- hosts (ad & tracker block lists live in blocklist.sh) ----------------------------------------------------------------
 do_hosts() {
   case $ACTION in
-    apply) sh "$D/blocklist.sh" apply >/dev/null; echo "hosts: $(grep -c "$MARK\$" /etc/hosts) ad/tracker names blocked";;
+    apply) sh "$D/blocklist.sh" apply >/dev/null; echo "hosts: $(awk '/# tv-debloat begin/{b=1;next} /# tv-debloat end/{b=0} b&&/^0\.0\.0\.0 /{n++} END{print n+0}' /etc/hosts) ad/tracker names blocked";;
     sweep) grep -q "$MARK" /etc/hosts || { sh "$D/blocklist.sh" apply >/dev/null; echo "hosts: re-applied"; };;
     undo)  sh "$D/blocklist.sh" remove >/dev/null; echo "hosts: restored";;
     status) grep -q "$MARK" /etc/hosts && echo "hosts: BLOCKING" || echo "hosts: off";;
