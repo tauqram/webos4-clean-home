@@ -346,3 +346,16 @@ Tested on the dev TV: poweron home / last / hdmi2 / home through screen-off-on c
 | **systemd groundwork**: tv/init.sh behind all service stops/starts/restarts; tv/systemd-units.tsv (all commented guesses); tools/list-services.sh; tools/test-init.sh; caps.sh and diagnose.sh report it; qspatch refuses on systemd | tv/init.sh, tv/common.sh, tv/debloat.sh, tv/qspatch.sh, tv/caps.sh, tools/*.sh | revert.sh as always |
 
 Tested: poweron app destination (HDMI 1 -> Netflix), backlight 100 seeded on all 419 contexts, real Upstart path through the new wrappers (nudge undo/apply, unknown job skipped), tools/test-init.sh 18/18, Home and photo-less saver rendered. NOT verified: any real systemd TV, the saver backlight level and burn-in glow on the real panel (only rendered in the preview), the Settings sliders with the real remote.
+
+## Fork tauqram/webos4-clean-home (2026-11-02 / 2026-11-03: Sam's LG OLED65C9, not yet installed on a real TV)
+
+| What | Where | Undo |
+|---|---|---|
+| Five themes (Azion, Noir OLED, Aurore, Bleu nuit, Sable) with a SEASONS table, black OLED screensaver with canvas fireworks and a small moving clock | `tv/launcher/themes.js`, `index.html`, `app.js` | Settings -> Accueil et veille -> Thème; or revert the commit |
+| Inter font (SIL OFL) bundled, copied to the RAM launcher copy | `tv/launcher/fonts/`, `tv/common.sh` (`ram_sync`) | revert the commit |
+| Home, Settings and the Services catalog translated to French; 24 h clock and °C by default | `app.js`, `index.html`, `tv/services.tsv` | revert the commit (state/settings.json keeps the user's own choices) |
+| Favorites picker: Settings -> Accueil et veille -> Favoris toggles apps in `dock` (max 6); Home rebuilds its rows when `dock`/`hide` change | `app.js` (`favPanel`, `favToggle`, `settingsChanged`, `applyRemoteSettings`) | revert the commit |
+| Self-update source is this fork | `tv/selfupdate.sh` (`DEF_REPO`) | `selfupdate.sh conf repo TristanG115/webos4-clean-home` |
+| French guided installer for Windows (double-click) | `Installer-TV.cmd`, `tools/installer-sam.sh` | PC side only |
+
+Verified only in a desktop Chromium with mock data (screenshots); `tools/check.sh` has not run on the C9 yet.

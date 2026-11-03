@@ -16,7 +16,7 @@ var CFG = {
   glow: {'netflix':'#e50914','youtube.leanback.v4':'#ff1f3d','hulu':'#1ce783','com.disney.disneyplus-prod':'#2a5bff','amazon':'#00a8e1',
          'com.apple.appletv':'#9aa3b5','com.wbd.stream':'#5b3dff','com.peacock.tv':'#f5c518','spotify-beehive':'#1db954','com.plutotv.app':'#fff200','com.tubitv.ott.tubi':'#7a2bff'},
   inputs: [['com.webos.app.hdmi1','HDMI 1'],['com.webos.app.hdmi2','HDMI 2'],['com.webos.app.hdmi3','HDMI 3'],['com.webos.app.hdmi4','HDMI 4'],
-           ['com.webos.app.externalinput.av1','AV'],['com.webos.app.externalinput.component','Component'],['com.webos.app.livetv','Live TV']],
+           ['com.webos.app.externalinput.av1','AV'],['com.webos.app.externalinput.component','Composante'],['com.webos.app.livetv','TV en direct']],
   fallbackPlace: {lat: 40.4259, lon: -86.9081, place: 'West Lafayette'}
 };
 // user settings, stored on the TV in state/settings.json (edited here, on the phone page, or by hand)
@@ -66,7 +66,7 @@ function updPoll(){
   api('/api/update', function(err, j){
     var p = $('updpill'); if (err || !j) return;
     if (j.resultKind && !document.hidden) { toast(j.result || ''); api('/api/update/conf?k=ack&v=1', noop); }
-    if (j.available && !j.busy) { p.innerHTML = 'Update <b></b> is ready &nbsp;·&nbsp; Settings › Software updates'; p.querySelector('b').textContent = j.available; p.className = 'on'; } else p.className = '';
+    if (j.available && !j.busy) { p.innerHTML = 'Mise à jour <b></b> prête &nbsp;·&nbsp; Réglages › Mises à jour du logiciel'; p.querySelector('b').textContent = j.available; p.className = 'on'; } else p.className = '';
   }, 8000);
 }
 // held keys repeat quickly: the longer a key is held the bigger the step (sliders, framing editor)
@@ -89,15 +89,16 @@ function settingsChanged(path){
   if (path.indexOf('bg.') === 0) { bgApply(true); }
   if (path.indexOf('saver.') === 0) activity();
   if (path.indexOf('ui.') === 0 || path === 'theme') applyUi();
+  if (path === 'dock' && apps.length) buildApps(apps);
 }
 function applyRemoteSettings(j){
   if (!j || typeof j !== 'object') return;
   var n = merge(clone(DEFAULTS), j), a = JSON.stringify(n), b = JSON.stringify(S);
   if (a === b || saveT) return;      // unchanged, or we have an unsaved local edit
-  var wxCh = JSON.stringify(n.weather) !== JSON.stringify(S.weather), bgCh = JSON.stringify(n.bg) !== JSON.stringify(S.bg);
+  var dockCh = JSON.stringify(n.dock) !== JSON.stringify(S.dock) || JSON.stringify(n.hide) !== JSON.stringify(S.hide), wxCh = JSON.stringify(n.weather) !== JSON.stringify(S.weather), bgCh = JSON.stringify(n.bg) !== JSON.stringify(S.bg);
   S = n; applyUi();
   if (SETMODE) { if (settingsOn) renderCat(false); return; }
-  lastT = ''; tick(); if (wxCh) wxLoad(true); if (bgCh) bgApply(true); activity(); if (settingsOn) renderCat(false);
+  lastT = ''; tick(); if (dockCh && apps.length) buildApps(apps); if (wxCh) wxLoad(true); if (bgCh) bgApply(true); activity(); if (settingsOn) renderCat(false);
 }
 function loadSettings(cb){ api('/api/settings', function(err, j){ if (!err) applyRemoteSettings(j); if (cb) cb(); }); }
 
@@ -163,9 +164,9 @@ function geoResolve(cb){
     }, 10000);
   } else {
     xhr('GET', 'https://ipwho.is/', null, function(err, j){
-      if (!err && j && j.success && j.latitude) return done({lat: j.latitude, lon: j.longitude, place: j.city || 'Here'});
+      if (!err && j && j.success && j.latitude) return done({lat: j.latitude, lon: j.longitude, place: j.city || 'Ici'});
       xhr('GET', 'https://ipapi.co/json/', null, function(e2, k){
-        if (!e2 && k && k.latitude) return done({lat: k.latitude, lon: k.longitude, place: k.city || 'Here'});
+        if (!e2 && k && k.latitude) return done({lat: k.latitude, lon: k.longitude, place: k.city || 'Ici'});
         fallback();
       }, 10000);
     }, 10000);
@@ -265,7 +266,7 @@ function move(dir){
 function launch(id){
   dlog('launch ' + id);
   var path = id === 'com.palm.app.settings' ? '/api/lg/open' : '/api/launch?id=' + encodeURIComponent(id);
-  api(path, function(err, j){ if (err || (j && j.returnValue === false)) toast('Could not open ' + id + (j && j.errorText ? ' (' + j.errorText + ')' : '')); else if (SETMODE && id === 'com.palm.app.settings') closeSettings(); });
+  api(path, function(err, j){ if (err || (j && j.returnValue === false)) toast('Impossible d’ouvrir ' + id + (j && j.errorText ? ' (' + j.errorText + ')' : '')); else if (SETMODE && id === 'com.palm.app.settings') closeSettings(); });
 }
 
 /* ================= photos (gallery), framing & Home background ================= */
@@ -384,16 +385,31 @@ function panelOpen(title, list){
 }
 function panelFocus(i){ pIdx = Math.max(0, Math.min(pItems.length - 1, i)); pItems.forEach(function(d, k){ d.className = 'pitem' + (k === pIdx ? ' foc' : ''); }); }
 function panelClose(){ if (mtop() === 'panel') mpop('panel'); $('panel').className = ''; if (INPMODE) apiPost('/api/settings/close?id=inputs', ''); }      // the Inputs overlay is only its panel: closing it ends the page
+// Favorites = the wide cards on top of Home. The panel lists every app in alphabetical order; OK adds one (at the end) or removes it.
+var favApps = null, FAV_MAX = 6;
+function favPanel(at){
+  if (!favApps) { api('/api/apps', function(e, j){ if (j && j.launchPoints) { favApps = j.launchPoints; favPanel(at); } else toast('Impossible de lire la liste des apps'); }, 15000); return; }
+  var list = favApps.filter(function(a){ return a.visible !== false && S.hide.indexOf(a.id) < 0; });
+  list.sort(function(a, b){ return (a.title || a.id).localeCompare(b.title || b.id); });
+  panelOpen('Favoris (' + S.dock.length + ' sur ' + FAV_MAX + ')', list.map(function(a, i){ var k = S.dock.indexOf(a.id);
+    return [(k >= 0 ? '★  ' : '') + (a.title || a.id), k >= 0 ? 'position ' + (k + 1) : 'ajouter', function(){ favToggle(a.id, i); }]; }));
+  if (at) panelFocus(at);
+}
+function favToggle(id, i){
+  var d = S.dock.slice(), k = d.indexOf(id);
+  if (k >= 0) d.splice(k, 1); else { if (d.length >= FAV_MAX) { toast(FAV_MAX + ' favoris au maximum : retires-en un d’abord'); return; } d.push(id); }
+  setPath('dock', d); favPanel(i); if (settingsOn) renderCat(false);
+}
 function openInputs(){ panelOpen('Entrées', CFG.inputs.map(function(i){ return [i[1], '', function(){ panelClose(); launch(i[0]); }]; })); }
 function openNet(){
   api('/api/net', function(err, j){
     var l = [];
     if (j && j.returnValue) { var w = j.wired || {}, f = j.wifi || {};
-      l.push(['Ethernet', w.state === 'connected' ? (w.ipAddress || 'connected') : 'not connected']);
-      l.push(['Wi-Fi', f.state === 'connected' ? ((f.ssid || 'connected') + (f.ipAddress ? '  ' + f.ipAddress : '')) : 'not connected']);
-      l.push(['Internet', j.isInternetConnectionAvailable ? 'available' : 'not available']);
-    } else l.push(['Network status', 'unavailable']);
-    l.push(['More network settings', '', function(){ panelClose(); openSettings('net'); }]);
+      l.push(['Ethernet', w.state === 'connected' ? (w.ipAddress || 'connected') : 'non connecté']);
+      l.push(['Wi-Fi', f.state === 'connected' ? ((f.ssid || 'connected') + (f.ipAddress ? '  ' + f.ipAddress : '')) : 'non connecté']);
+      l.push(['Internet', j.isInternetConnectionAvailable ? 'available' : 'indisponible']);
+    } else l.push(['État du réseau', 'unavailable']);
+    l.push(['Plus de réglages réseau', '', function(){ panelClose(); openSettings('net'); }]);
     panelOpen('Réseau', l); for (var i = 0; i < pItems.length; i++) if (pItems[i]._pick) { panelFocus(i); break; }
   });
 }
@@ -438,7 +454,7 @@ function withQr(cb){
 function qrOpen(){ withQr(qrOpen2); }
 function qrOpen2(){
   api('/api/info', function(err, j){
-    if (err || !j || !j.ip) { toast('Could not read the TV address'); return; }
+    if (err || !j || !j.ip) { toast('Impossible de lire l’adresse de la TV'); return; }
     var url = MOCK ? 'http://10.0.0.63:8765/?t=demo' : 'http://' + j.ip + ':' + j.port + '/?t=' + j.token;
     var cv = $('qrcv'), ctx = cv.getContext('2d'), qr;
     try { qr = qrcode(0, 'M'); qr.addData(url); qr.make(); } catch(e){ toast('QR failed'); return; }
@@ -447,7 +463,7 @@ function qrOpen2(){
     for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (qr.isDark(r, c)) ctx.fillRect(off + c * cell, off + r * cell, cell, cell);
     $('qrurl').textContent = url.replace(/\?t=.*/, '');
     $('qrm').className = 'on'; mpush('qr');
-    qrPoll = setInterval(function(){ refreshPhotos(function(ch){ if (ch) { toast(photos.length + ' photos in the gallery'); if (settingsOn) renderCat(false); } }); }, 3000);
+    qrPoll = setInterval(function(){ refreshPhotos(function(ch){ if (ch) { toast(photos.length + ' photos dans la galerie'); if (settingsOn) renderCat(false); } }); }, 3000);
   });
 }
 function qrClose(){ clearInterval(qrPoll); mpop('qr'); $('qrm').className = ''; refreshPhotos(function(){ if (settingsOn) renderCat(false); if (!SETMODE && !hasBg()) bgApply(true); }); }
@@ -464,7 +480,7 @@ function lgLoadMany(list, cb){ var i = 0; (function next(){ if (i >= list.length
 function lgSet(cat, key, val, after){
   var st = {}; st[key] = String(val); (LGC[cat] = LGC[cat] || {})[key] = String(val);
   apiPost('/api/lg/set', JSON.stringify({category: cat, settings: st}), function(err, j){
-    if (err || (j && j.returnValue === false)) { toast('The TV refused that setting' + (j && j.errorText ? ': ' + j.errorText : '')); }
+    if (err || (j && j.returnValue === false)) { toast('La TV a refusé ce réglage' + (j && j.errorText ? ': ' + j.errorText : '')); }
     if (after) after();
   });
 }
@@ -493,16 +509,16 @@ var ICON = {
 };
 function tgl(label, desc, get, set){ return {type: 'toggle', label: label, desc: desc, get: get, set: set}; }
 // Back-button history options live on the TV (lastapp.sh, state/back.conf); the Remote page's data object holds the current values
-function backOpt(k, v){ var d = cats[catIdx].data = cats[catIdx].data || {}; d.back = d.back || {}; d.back[k] = (k === 'reset' || k === 'leave') ? v : parseInt(v, 10); api('/api/history?k=' + k + '&n=' + v, function(){ toast('Saved'); }); }
+function backOpt(k, v){ var d = cats[catIdx].data = cats[catIdx].data || {}; d.back = d.back || {}; d.back[k] = (k === 'reset' || k === 'leave') ? v : parseInt(v, 10); api('/api/history?k=' + k + '&n=' + v, function(){ toast('Enregistré'); }); }
 function chc(label, desc, opts, get, set){ return {type: 'choice', label: label, desc: desc, opts: opts, get: get, set: set}; }
 function sld(label, desc, min, max, step, get, set){ return {type: 'slider', label: label, desc: desc, min: min, max: max, step: step, get: get, set: set}; }
 function inf(label, value, desc){ return {type: 'info', label: label, value: value, desc: desc}; }
 function act(label, desc, run, val){ return {type: 'action', label: label, desc: desc, run: run, val: val}; }
 function head(label){ return {type: 'head', label: label}; }
 // the ONE backlight control: applied to every input, app and picture mode (brightness.sh). LG's own "Backlight" slider is hidden because it only ever changed the screen you were on.
-function brSld(label){ return sld(label, 'Backlight for every input and app, 100 = full. The screensaver has its own, lower setting under Home & Screensaver. LG keeps a separate backlight per input; this sets them all and keeps them there.', 5, 100, 5,
+function brSld(label){ return sld(label, 'Rétroéclairage pour toutes les entrées et applications, 100 = maximum. La veille a son propre réglage, plus bas, dans Accueil et veille. LG garde un rétroéclairage par entrée : celui-ci les règle toutes et les maintient.', 5, 100, 5,
   function(){ var n = parseInt(BRV, 10); return isNaN(n) ? 100 : n; },
-  function(v){ BRV = String(v); clearTimeout(brSld.t); brSld.t = setTimeout(function(){ api('/api/brightness?v=' + v, function(err){ toast(err ? 'Could not change that' : 'Backlight ' + v); }, 70000); }, 700); }); }
+  function(v){ BRV = String(v); clearTimeout(brSld.t); brSld.t = setTimeout(function(){ api('/api/brightness?v=' + v, function(err){ toast(err ? 'Impossible de modifier ce réglage' : 'Rétroéclairage ' + v); }, 70000); }, 700); }); }
 function optsOf(it){ return typeof it.opts === 'function' ? it.opts() : it.opts; }
 // rows backed by LG's settings service; a row disappears when the TV does not have that key for the current input / picture mode
 function lgTgl(cat, key, label, desc, onv, offv){ onv = onv || 'on'; offv = offv || 'off';
@@ -513,277 +529,278 @@ function lgSld(cat, key, label, desc, min, max, step){
   var it = sld(label, desc, min, max, step, function(){ return parseInt((LGC[cat] || {})[key] || '0', 10); }, function(v){ clearTimeout(it._t); it._t = setTimeout(function(){ lgSet(cat, key, v); }, 350); });
   it.local = function(v){ (LGC[cat] = LGC[cat] || {})[key] = String(v); }; it.show = function(){ return lgHas(cat, key); }; return it;
 }
-var OFFON = [['off','Off'],['on','On']];
-var ASPECTS = [['16x9','16:9'],['original','Original'],['full_wide','Full wide'],['4x3','4:3'],['14x9','14:9'],['zoom','Zoom'],['zoom2','Zoom 2'],['cinema_zoom','Cinema zoom'],['21x9','21:9']];
-var SOUNDMODES = [['standard','Standard'],['movie','Cinema'],['news','Clear voice / News'],['sports','Sports'],['music','Music'],['game','Game'],['asc','AI sound'],['bass','Bass']];
-var SLEEPS = [['off','Off'],['10','10 min'],['20','20 min'],['30','30 min'],['60','1 hour'],['90','1.5 hours'],['120','2 hours'],['180','3 hours'],['240','4 hours']];
-var LEVELS = [['off','Off'],['low','Low'],['medium','Medium'],['high','High']];
+var OFFON = [['off','Désactivé'],['on','Activé']];
+var ASPECTS = [['16x9','16:9'],['original','Original'],['full_wide','Plein écran'],['4x3','4:3'],['14x9','14:9'],['zoom','Zoom'],['zoom2','Zoom 2'],['cinema_zoom','Zoom cinéma'],['21x9','21:9']];
+var SOUNDMODES = [['standard','Standard'],['movie','Cinéma'],['news','Voix claire / Infos'],['sports','Sport'],['music','Musique'],['game','Jeu'],['asc','Son IA'],['bass','Graves']];
+var SLEEPS = [['off','Désactivé'],['10','10 min'],['20','20 min'],['30','30 min'],['60','1 heure'],['90','1 h 30'],['120','2 heures'],['180','3 heures'],['240','4 heures']];
+var LEVELS = [['off','Désactivé'],['low','Bas'],['medium','Moyen'],['high','Élevé']];
 var MINS = function(v){ return v + ' min'; };
-var PICMODES = {vivid:'Vivid', normal:'Standard', eco:'Eco', cinema:'Cinema', sports:'Sports', game:'Game', photo:'Photo', expert1:'Expert (bright room)', expert2:'Expert (dark room)',
-  hdrVivid:'HDR Vivid', hdrStandard:'HDR Standard', hdrCinemaBright:'HDR Cinema Bright', hdrCinema:'HDR Cinema', hdrGame:'HDR Game', hdrEffect:'HDR Effect', technicolor:'Technicolor', hdrTechnicolor:'HDR Technicolor',
-  dolbyHdrVivid:'Dolby Vision Vivid', dolbyHdrStandard:'Dolby Vision Standard', dolbyHdrCinemaBright:'Dolby Vision Bright', dolbyHdrCinema:'Dolby Vision Dark', dolbyHdrGame:'Dolby Vision Game'};
+var PICMODES = {vivid:'Éclatant', normal:'Standard', eco:'Éco', cinema:'Cinéma', sports:'Sport', game:'Jeu', photo:'Photo', expert1:'Expert (pièce claire)', expert2:'Expert (pièce sombre)',
+  hdrVivid:'HDR Éclatant', hdrStandard:'HDR Standard', hdrCinemaBright:'HDR Cinéma lumineux', hdrCinema:'HDR Cinéma', hdrGame:'HDR Jeu', hdrEffect:'Effet HDR', technicolor:'Technicolor', hdrTechnicolor:'HDR Technicolor',
+  dolbyHdrVivid:'Dolby Vision Éclatant', dolbyHdrStandard:'Dolby Vision Standard', dolbyHdrCinemaBright:'Dolby Vision Cinéma lumineux', dolbyHdrCinema:'Dolby Vision Cinéma', dolbyHdrGame:'Dolby Vision Jeu'};
 function picModes(){
   var cur = (LGC.picture || {}).pictureMode || 'normal', fam = /^dolby/.test(cur) ? /^dolby/ : /^(hdr|technicolor)/.test(cur) ? /^(hdr|technicolor)/ : null, out = [];
   for (var k in PICMODES) { var isH = /^(hdr|technicolor|dolby)/.test(k); if (fam ? fam.test(k) : !isH) out.push([k, PICMODES[k]]); }
   if (!out.length) out.push([cur, cur]); return out;
 }
-var SOUNDOUT = [['tv_speaker','TV speaker'],['external_arc','HDMI ARC / eARC'],['external_optical','Optical'],['bt_soundbar','Bluetooth soundbar'],['lineout','Line out'],['headphone','Headphones'],['bt_audio','Bluetooth device'],['tv_external_speaker','TV speaker + external'],['tv_speaker_headphone','TV speaker + headphones']];
+var SOUNDOUT = [['tv_speaker','Haut-parleurs de la TV'],['external_arc','HDMI ARC / eARC'],['external_optical','Optique'],['bt_soundbar','Barre de son Bluetooth'],['lineout','Sortie ligne'],['headphone','Casque'],['bt_audio','Appareil Bluetooth'],['tv_external_speaker','Haut-parleurs TV + externe'],['tv_speaker_headphone','Haut-parleurs TV + casque']];
 function fmtDate2(sec){ if (!sec) return 'never'; var d = new Date(sec * 1000); return MONS[d.getMonth()].slice(0, 3) + ' ' + d.getDate() + ', ' + d.getFullYear(); }
 function num(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
 cats = [
-  {id: 'quick', name: 'Quick settings', icon: 'bolt', title: 'Quick settings', desc: 'The same shortcuts as LG’s quick panel: picture mode, aspect ratio, sound mode, sound out, sleep timer, network, and all settings.', info: '/api/net',
+  {id: 'quick', name: 'Réglages rapides', icon: 'bolt', title: 'Réglages rapides', desc: 'Les mêmes raccourcis que le panneau rapide de LG : mode d’image, format, mode son, sortie son, minuterie, réseau et tous les réglages.', info: '/api/net',
     lg: [['picture', ['pictureMode','aspectRatio']], ['sound', ['soundMode','soundOutput']], ['time', ['sleepTimer']]], build: function(){ var j = this.data || {}, w = j.wired || {}, f = j.wifi || {}; return [
-    brSld('Backlight (all inputs and apps)'),
-    lgChc('picture', 'pictureMode', 'Picture mode', '', picModes, true),
-    lgChc('picture', 'aspectRatio', 'Aspect ratio', '', ASPECTS),
-    lgChc('sound', 'soundMode', 'Sound mode', '', SOUNDMODES),
-    lgChc('sound', 'soundOutput', 'Sound out', 'Where the sound plays. If the TV goes silent, pick TV speaker.', SOUNDOUT),
-    lgChc('time', 'sleepTimer', 'Sleep timer', 'Turns the TV off after this time', SLEEPS),
-    inf('Network', function(){ return (w.state === 'connected' ? 'Ethernet' : f.state === 'connected' ? 'Wi-Fi ' + (f.ssid || '') : 'Offline') + (w.ipAddress || f.ipAddress ? '  ·  ' + (w.ipAddress || f.ipAddress) : ''); }),
-    act('All settings', 'LG’s own full Settings app', function(){ launch('com.palm.app.settings'); })
+    brSld('Rétroéclairage (toutes les entrées et applications)'),
+    lgChc('picture', 'pictureMode', 'Mode d’image', '', picModes, true),
+    lgChc('picture', 'aspectRatio', 'Format d’image', '', ASPECTS),
+    lgChc('sound', 'soundMode', 'Mode son', '', SOUNDMODES),
+    lgChc('sound', 'soundOutput', 'Sortie son', 'Où le son est diffusé. Si la TV devient muette, choisis Haut-parleurs de la TV.', SOUNDOUT),
+    lgChc('time', 'sleepTimer', 'Minuterie de mise en veille', 'Éteint la TV après ce délai', SLEEPS),
+    inf('Réseau', function(){ return (w.state === 'connected' ? 'Ethernet' : f.state === 'connected' ? 'Wi-Fi ' + (f.ssid || '') : 'Hors ligne') + (w.ipAddress || f.ipAddress ? '  ·  ' + (w.ipAddress || f.ipAddress) : ''); }),
+    act('Tous les réglages', 'L’application Réglages complète de LG', function(){ launch('com.palm.app.settings'); })
   ]; }},
-  {id: 'home', name: 'Home & Screensaver', icon: 'home', title: 'Home & Screensaver', desc: 'Background photos, the idle (AFK) screen and the clock.', build: function(){ return [
+  {id: 'home', name: 'Accueil et veille', icon: 'home', title: 'Accueil et veille', desc: 'Photos de fond, écran de veille et horloge.', build: function(){ return [
     chc('Thème', 'Fond, couleur d’accent et animation de veille. Automatique = le thème de la saison quand il y en a un', window.Theme ? Theme.options() : [['auto', 'Automatique']], function(){ return S.theme || 'auto'; }, function(v){ setPath('theme', v); }),
-    tgl('Photo background on Home', 'Uses the photos in your gallery', function(){ return S.bg.on; }, function(b){ setPath('bg.on', b); }),
-    chc('Change background every', '', [[5,'5 min'],[10,'10 min'],[20,'20 min'],[30,'30 min'],[60,'1 hour']], function(){ return S.bg.everyMin; }, function(v){ setPath('bg.everyMin', v); }),
-    tgl('Screensaver when idle', 'Clock, date and weather after a while', function(){ return S.saver.on; }, function(b){ setPath('saver.on', b); }),
-    chc('Start after', '', [[1,'1 min'],[2,'2 min'],[5,'5 min'],[10,'10 min'],[15,'15 min'],[30,'30 min']], function(){ return S.saver.idleMin; }, function(v){ setPath('saver.idleMin', v); }),
-    tgl('Show gallery photos in screensaver', 'Off = dark screen with clock', function(){ return S.saver.photos; }, function(b){ setPath('saver.photos', b); }),
-    chc('Photo changes every', 'Slow is easier on the eyes and on the TV', [[12,'12 s'],[30,'30 s'],[60,'1 min'],[120,'2 min'],[300,'5 min'],[600,'10 min'],[900,'15 min']], function(){ return S.saver.slideSec; }, function(v){ setPath('saver.slideSec', v); }),
+    act('Favoris', 'Les grandes cartes en haut de l’accueil. OK, puis OK sur une app pour l’ajouter ou la retirer (6 au maximum, dans l’ordre choisi).', function(){ favPanel(0); }, S.dock.length + ' app' + (S.dock.length > 1 ? 's' : '') + '  ▶'),
+    tgl('Photo en fond de l’accueil', 'Utilise les photos de ta galerie', function(){ return S.bg.on; }, function(b){ setPath('bg.on', b); }),
+    chc('Changer de fond toutes les', '', [[5,'5 min'],[10,'10 min'],[20,'20 min'],[30,'30 min'],[60,'1 heure']], function(){ return S.bg.everyMin; }, function(v){ setPath('bg.everyMin', v); }),
+    tgl('Veille en cas d’inactivité', 'Heure, date et météo après un moment', function(){ return S.saver.on; }, function(b){ setPath('saver.on', b); }),
+    chc('Démarrer après', '', [[1,'1 min'],[2,'2 min'],[5,'5 min'],[10,'10 min'],[15,'15 min'],[30,'30 min']], function(){ return S.saver.idleMin; }, function(v){ setPath('saver.idleMin', v); }),
+    tgl('Photos de la galerie pendant la veille', 'Désactivé = écran noir avec l’heure', function(){ return S.saver.photos; }, function(b){ setPath('saver.photos', b); }),
+    chc('Changer de photo toutes les', 'Lent, c’est plus reposant pour les yeux et pour la TV', [[12,'12 s'],[30,'30 s'],[60,'1 min'],[120,'2 min'],[300,'5 min'],[600,'10 min'],[900,'15 min']], function(){ return S.saver.slideSec; }, function(v){ setPath('saver.slideSec', v); }),
     chc('Animation de veille', 'Sans photos, la veille reste noire (pixels éteints) avec cette animation de temps en temps', [['theme', 'Selon le thème'], ['fireworks', 'Feux d’artifice'], ['none', 'Aucune (écran noir)']], function(){ return S.saver.fx || 'theme'; }, function(v){ setPath('saver.fx', v); }),
     tgl('Heure pendant la veille', 'Petite et grise, elle change de place chaque minute', function(){ return S.saver.clock !== false; }, function(b){ setPath('saver.clock', b); }),
-    tgl('Show weather in screensaver', '', function(){ return S.saver.weather; }, function(b){ setPath('saver.weather', b); wxRender(); }),
-    sld('Screensaver dimming', 'Darkens the photo so the screensaver is easy on the eyes; the clock stays bright. 0 = no dimming', 0, 80, 5, function(){ return S.saver.dim === undefined ? 30 : S.saver.dim; }, function(v){ setPath('saver.dim', v); }),
-    sld('Screensaver backlight', function(){ var b = parseInt(BRV, 10); b = isNaN(b) ? 100 : b; return 'Backlight while the screensaver runs, on LG’s 0–100 scale (never brighter than your normal ' + b + '). Put back as soon as you wake the TV.'; }, 5, 100, 5, function(){ return S.saver.level === undefined ? 15 : S.saver.level; }, function(v){ setPath('saver.level', v); }),
-    tgl('24-hour clock', '', function(){ return S.clock24; }, function(b){ setPath('clock24', b); })
+    tgl('Météo pendant la veille', '', function(){ return S.saver.weather; }, function(b){ setPath('saver.weather', b); wxRender(); }),
+    sld('Assombrissement de la veille', 'Assombrit la photo pour reposer les yeux ; l’heure reste lisible. 0 = aucun assombrissement', 0, 80, 5, function(){ return S.saver.dim === undefined ? 30 : S.saver.dim; }, function(v){ setPath('saver.dim', v); }),
+    sld('Rétroéclairage pendant la veille', function(){ var b = parseInt(BRV, 10); b = isNaN(b) ? 100 : b; return 'Rétroéclairage pendant la veille, sur l’échelle LG de 0 à 100 (jamais plus fort que ton réglage normal, ' + b + '). Rétabli dès que tu sors de la veille.'; }, 5, 100, 5, function(){ return S.saver.level === undefined ? 15 : S.saver.level; }, function(v){ setPath('saver.level', v); }),
+    tgl('Heure sur 24 h', '', function(){ return S.clock24; }, function(b){ setPath('clock24', b); })
   ]; }},
-  {id: 'weather', name: 'Weather', icon: 'cloud', title: 'Weather', desc: 'Free forecasts from Open-Meteo.', build: function(){ return [
-    chc('Location', 'Automatic uses this TV’s internet connection', [['auto','Automatic'],['zip','ZIP code']], function(){ return S.weather.mode; }, function(v){ setPath('weather.mode', v); renderCat(true); }),
-    {type: 'text', label: 'ZIP code', desc: 'US ZIP codes. OK to type it with the remote.', show: function(){ return S.weather.mode === 'zip'; },
-      get: function(){ return S.weather.zip || 'not set'; }, run: function(){ keypadOpen('ZIP code', S.weather.zip, 5, function(v){ if (/^\d{5}$/.test(v)) { S.weather.mode = 'zip'; setPath('weather.zip', v); renderCat(true); } else toast('Enter 5 digits'); }); }},
-    chc('Units', '', [['F','°F'],['C','°C']], function(){ return S.weather.unit; }, function(v){ setPath('weather.unit', v); }),
-    inf('Showing', function(){ return wx ? wx.place : 'loading…'; }),
-    act('Refresh now', '', function(){ lsSet('loc', null); wxLoad(true); toast('Updating weather…'); })
+  {id: 'weather', name: 'Météo', icon: 'cloud', title: 'Météo', desc: 'Prévisions gratuites d’Open-Meteo.', build: function(){ return [
+    chc('Lieu', 'Automatique utilise la connexion internet de la TV', [['auto','Automatique'],['zip','Code postal (US)']], function(){ return S.weather.mode; }, function(v){ setPath('weather.mode', v); renderCat(true); }),
+    {type: 'text', label: 'Code postal (US)', desc: 'Codes postaux américains uniquement. OK pour le saisir avec la télécommande.', show: function(){ return S.weather.mode === 'zip'; },
+      get: function(){ return S.weather.zip || 'non défini'; }, run: function(){ keypadOpen('Code postal (US)', S.weather.zip, 5, function(v){ if (/^\d{5}$/.test(v)) { S.weather.mode = 'zip'; setPath('weather.zip', v); renderCat(true); } else toast('Saisis 5 chiffres'); }); }},
+    chc('Unités', '', [['F','°F'],['C','°C']], function(){ return S.weather.unit; }, function(v){ setPath('weather.unit', v); }),
+    inf('Affiché', function(){ return wx ? wx.place : 'loading…'; }),
+    act('Actualiser maintenant', '', function(){ lsSet('loc', null); wxLoad(true); toast('Mise à jour de la météo…'); })
   ]; }},
-  {id: 'gallery', name: 'Photo gallery', icon: 'image', title: 'Photo gallery', desc: 'Photos used for the Home background and screensaver. Choose a photo to adjust its framing.', build: function(){ return [
-    act('Add photos from your phone', 'Shows a QR code to scan. The phone page can also adjust framing and edit the ad-block lists.', function(){ qrOpen(); }, 'QR'),
-    inf('Photos in gallery', function(){ return String(photos.length); }),
-    tgl('Photo background on Home', '', function(){ return S.bg.on; }, function(b){ setPath('bg.on', b); }),
-    tgl('Show photos in screensaver', '', function(){ return S.saver.photos; }, function(b){ setPath('saver.photos', b); }),
-    act('Reset phone link', 'Old QR codes stop working', function(){ panelOpen('Reset the phone link?', [['Yes, reset it', '', function(){ panelClose(); apiPost('/api/resettoken', '', function(){ toast('Phone link reset'); }); }], ['Cancel', '', panelClose]]); }),
+  {id: 'gallery', name: 'Galerie photo', icon: 'image', title: 'Galerie photo', desc: 'Photos utilisées pour le fond de l’accueil et la veille. Choisis une photo pour ajuster son cadrage.', build: function(){ return [
+    act('Ajouter des photos depuis ton téléphone', 'Affiche un QR code à scanner. La page du téléphone permet aussi d’ajuster le cadrage et de modifier les listes de blocage.', function(){ qrOpen(); }, 'QR'),
+    inf('Photos dans la galerie', function(){ return String(photos.length); }),
+    tgl('Photo en fond de l’accueil', '', function(){ return S.bg.on; }, function(b){ setPath('bg.on', b); }),
+    tgl('Photos pendant la veille', '', function(){ return S.saver.photos; }, function(b){ setPath('saver.photos', b); }),
+    act('Réinitialiser le lien du téléphone', 'Les anciens QR codes ne fonctionneront plus', function(){ panelOpen('Réinitialiser le lien du téléphone ?', [['Oui, réinitialiser', '', function(){ panelClose(); apiPost('/api/resettoken', '', function(){ toast('Lien du téléphone réinitialisé'); }); }], ['Annuler', '', panelClose]]); }),
     {type: 'thumbs'}
   ]; }},
-  {id: 'picture', name: 'Picture', icon: 'pic', title: 'Picture', desc: 'Applies to what is on screen now: the current input and picture mode.',
+  {id: 'picture', name: 'Image', icon: 'pic', title: 'Image', desc: 'S’applique à ce qui est à l’écran : l’entrée et le mode d’image actuels.',
     lg: [['picture', ['pictureMode','backlight','contrast','brightness','sharpness','color','tint','colorTemperature','energySaving','dynamicContrast','localDimming','peakBrightness','superResolution','noiseReduction','mpegNoiseReduction','gamma','colorGamut','blackLevel','dynamicColor','hdrDynamicToneMapping','truMotionMode','truMotionJudder','truMotionBlur','motionEyeCare','eyeComfortMode','aspectRatio']]], build: function(){ return [
-    lgChc('picture', 'pictureMode', 'Picture mode', '', picModes, true),
-    brSld('Backlight'), lgSld('picture', 'contrast', 'Contrast', '', 0, 100, 1),
-    lgSld('picture', 'brightness', 'Black level', 'LG calls this “Brightness”: how dark the darkest parts of the picture are. It is not the backlight.', 0, 100, 1), lgSld('picture', 'sharpness', 'Sharpness', '', 0, 50, 1),
-    lgSld('picture', 'color', 'Color', '', 0, 100, 1), lgSld('picture', 'tint', 'Tint', '', -50, 50, 1), lgSld('picture', 'colorTemperature', 'Color temperature', 'Negative = warmer, positive = cooler', -50, 50, 1),
-    lgChc('picture', 'energySaving', 'Energy saving', '', [['off','Off'],['auto','Auto'],['min','Minimum'],['med','Medium'],['max','Maximum'],['screen_off','Screen off']]),
-    head('Picture options'),
-    lgChc('picture', 'dynamicContrast', 'Dynamic contrast', '', LEVELS), lgChc('picture', 'localDimming', 'Local dimming', '', LEVELS), lgChc('picture', 'peakBrightness', 'Peak brightness', '', LEVELS),
-    lgChc('picture', 'superResolution', 'Super resolution', '', LEVELS), lgChc('picture', 'noiseReduction', 'Noise reduction', '', [['off','Off'],['low','Low'],['medium','Medium'],['high','High'],['auto','Auto']]),
-    lgChc('picture', 'mpegNoiseReduction', 'MPEG noise reduction', '', [['off','Off'],['low','Low'],['medium','Medium'],['high','High'],['auto','Auto']]),
-    lgChc('picture', 'gamma', 'Gamma', '', [['low','Low'],['medium','Medium'],['high1','High 1'],['high2','High 2']]), lgChc('picture', 'colorGamut', 'Color gamut', '', [['auto','Auto'],['wide','Wide'],['extended','Extended'],['srgb','sRGB']]),
-    lgChc('picture', 'blackLevel', 'Black level', '', [['auto','Auto'],['low','Low'],['high','High']]), lgChc('picture', 'dynamicColor', 'Dynamic color', '', LEVELS),
-    lgChc('picture', 'hdrDynamicToneMapping', 'HDR tone mapping', '', [['on','On'],['off','Off'],['HGIG','HGIG']]),
-    lgChc('picture', 'truMotionMode', 'TruMotion', 'Motion smoothing', [['off','Off'],['smooth','Smooth'],['clear','Clear'],['user','User']]),
-    lgSld('picture', 'truMotionJudder', 'De-judder', '', 0, 10, 1), lgSld('picture', 'truMotionBlur', 'De-blur', '', 0, 10, 1),
-    lgTgl('picture', 'motionEyeCare', 'Motion eye care', ''), lgTgl('picture', 'eyeComfortMode', 'Eye comfort mode', 'Warmer, easier on the eyes at night'),
-    lgChc('picture', 'aspectRatio', 'Aspect ratio', '', ASPECTS)
+    lgChc('picture', 'pictureMode', 'Mode d’image', '', picModes, true),
+    brSld('Rétroéclairage'), lgSld('picture', 'contrast', 'Contraste', '', 0, 100, 1),
+    lgSld('picture', 'brightness', 'Niveau de noir', 'LG l’appelle « Luminosité » : le niveau des parties les plus sombres de l’image. Ce n’est pas le rétroéclairage.', 0, 100, 1), lgSld('picture', 'sharpness', 'Netteté', '', 0, 50, 1),
+    lgSld('picture', 'color', 'Couleur', '', 0, 100, 1), lgSld('picture', 'tint', 'Teinte', '', -50, 50, 1), lgSld('picture', 'colorTemperature', 'Température de couleur', 'Négatif = plus chaud, positif = plus froid', -50, 50, 1),
+    lgChc('picture', 'energySaving', 'Économie d’énergie', '', [['off','Désactivé'],['auto','Auto'],['min','Minimum'],['med','Moyen'],['max','Maximum'],['screen_off','Écran éteint']]),
+    head('Options d’image'),
+    lgChc('picture', 'dynamicContrast', 'Contraste dynamique', '', LEVELS), lgChc('picture', 'localDimming', 'Gradation locale', '', LEVELS), lgChc('picture', 'peakBrightness', 'Luminosité de crête', '', LEVELS),
+    lgChc('picture', 'superResolution', 'Super résolution', '', LEVELS), lgChc('picture', 'noiseReduction', 'Réduction du bruit', '', [['off','Désactivé'],['low','Bas'],['medium','Moyen'],['high','Élevé'],['auto','Auto']]),
+    lgChc('picture', 'mpegNoiseReduction', 'Réduction du bruit MPEG', '', [['off','Désactivé'],['low','Bas'],['medium','Moyen'],['high','Élevé'],['auto','Auto']]),
+    lgChc('picture', 'gamma', 'Gamma', '', [['low','Bas'],['medium','Moyen'],['high1','Élevé 1'],['high2','Élevé 2']]), lgChc('picture', 'colorGamut', 'Gamme de couleurs', '', [['auto','Auto'],['wide','Grand'],['extended','Étendue'],['srgb','sRGB']]),
+    lgChc('picture', 'blackLevel', 'Niveau de noir', '', [['auto','Auto'],['low','Bas'],['high','Élevé']]), lgChc('picture', 'dynamicColor', 'Couleur dynamique', '', LEVELS),
+    lgChc('picture', 'hdrDynamicToneMapping', 'Mappage des tons HDR', '', [['on','Activé'],['off','Désactivé'],['HGIG','HGIG']]),
+    lgChc('picture', 'truMotionMode', 'TruMotion', 'Fluidité des mouvements', [['off','Désactivé'],['smooth','Fluide'],['clear','Net'],['user','Utilisateur']]),
+    lgSld('picture', 'truMotionJudder', 'Anti-saccades', '', 0, 10, 1), lgSld('picture', 'truMotionBlur', 'Anti-flou', '', 0, 10, 1),
+    lgTgl('picture', 'motionEyeCare', 'Protection des yeux (mouvement)', ''), lgTgl('picture', 'eyeComfortMode', 'Mode confort des yeux', 'Plus chaud, plus reposant le soir'),
+    lgChc('picture', 'aspectRatio', 'Format d’image', '', ASPECTS)
   ]; }},
-  {id: 'sound', name: 'Sound', icon: 'sound', title: 'Sound', desc: 'TV speaker and audio output options.',
+  {id: 'sound', name: 'Son', icon: 'sound', title: 'Son', desc: 'Haut-parleurs de la TV et sorties audio.',
     lg: [['sound', ['soundMode','clearVoice','autoVolume','virtualSurround','soundOutput','audioBalance','soundOptimizer','soundOutputDigital','hdmiArcMode','eArcSupport','lgSoundSync','startupSound','tvPowerSound']]], build: function(){ return [
-    lgChc('sound', 'soundMode', 'Sound mode', '', SOUNDMODES),
-    lgChc('sound', 'clearVoice', 'Clear Voice', 'Makes speech easier to hear', [['off','Off'],['level1','Level 1'],['level2','Level 2'],['level3','Level 3']]),
-    lgTgl('sound', 'autoVolume', 'Auto volume', 'Evens out loud ads and quiet scenes'), lgTgl('sound', 'virtualSurround', 'Virtual surround', ''),
-    lgSld('sound', 'audioBalance', 'Balance', 'Left / right', -50, 50, 1),
-    lgChc('sound', 'soundOutput', 'Sound output', 'Where the sound plays. If the TV goes silent, pick TV speaker.', SOUNDOUT),
-    lgChc('sound', 'soundOptimizer', 'TV placement', '', [['normal','Normal'],['stand','On a stand'],['wall_mount','Wall mounted']]),
-    head('Digital audio'),
-    lgChc('sound', 'soundOutputDigital', 'Digital sound output', '', [['pcm','PCM'],['auto','Auto'],['passThrough','Pass-through']]),
+    lgChc('sound', 'soundMode', 'Mode son', '', SOUNDMODES),
+    lgChc('sound', 'clearVoice', 'Voix claire', 'Rend les dialogues plus faciles à entendre', [['off','Désactivé'],['level1','Niveau 1'],['level2','Niveau 2'],['level3','Niveau 3']]),
+    lgTgl('sound', 'autoVolume', 'Volume automatique', 'Égalise les pubs fortes et les scènes calmes'), lgTgl('sound', 'virtualSurround', 'Surround virtuel', ''),
+    lgSld('sound', 'audioBalance', 'Balance', 'Gauche / droite', -50, 50, 1),
+    lgChc('sound', 'soundOutput', 'Sortie son', 'Où le son est diffusé. Si la TV devient muette, choisis Haut-parleurs de la TV.', SOUNDOUT),
+    lgChc('sound', 'soundOptimizer', 'Emplacement de la TV', '', [['normal','Normal'],['stand','Sur pied'],['wall_mount','Au mur']]),
+    head('Audio numérique'),
+    lgChc('sound', 'soundOutputDigital', 'Sortie son numérique', '', [['pcm','PCM'],['auto','Auto'],['passThrough','Pass-through']]),
     lgTgl('sound', 'hdmiArcMode', 'HDMI ARC', ''), lgTgl('sound', 'eArcSupport', 'eARC', ''), lgTgl('sound', 'lgSoundSync', 'LG Sound Sync', ''),
-    lgTgl('sound', 'startupSound', 'Startup sound', ''), lgTgl('sound', 'tvPowerSound', 'Power-on sound', '')
+    lgTgl('sound', 'startupSound', 'Son au démarrage', ''), lgTgl('sound', 'tvPowerSound', 'Son à l’allumage', '')
   ]; }},
-  {id: 'power', name: 'Power & timers', icon: 'power', title: 'Power & timers', desc: '',
+  {id: 'power', name: 'Alimentation et minuteries', icon: 'power', title: 'Alimentation et minuteries', desc: '',
     lg: [['option', ['quickStartMode','standByLight','logoLight','powerOnLight']], ['general', ['homeAutoLaunch']], ['time', ['autoClock','daylightSaving','sleepTimer','noOperationAutoOff','automaticStandBy','noSignalAutoOff','timeZone']]], info: '/api/poweron', build: function(){ var self = this, tz = (LGC.time || {}).timeZone; if (!self.appsAsked) { self.appsAsked = true; api('/api/apps', function(e, j){ if (j && j.launchPoints) { self.apps = j.launchPoints; if (settingsOn && cats[catIdx].id === 'power') renderCat(false); } }, 15000); } return [
-    lgTgl('option', 'quickStartMode', 'Quick Start', 'Turns on in a couple of seconds instead of a full start. Uses a little more power while off. On is recommended: it works with this launcher and makes no difference to LG updates being blocked.'),
-    chc('When the TV turns on, go to', 'Home is our Home screen. “Where it was” is LG’s own behaviour (the input or app you left). Applies to Quick Start wake-ups and to a full start.', function(){ var o = [['home','Home (recommended)'],['last','Where it was'],['hdmi1','HDMI 1'],['hdmi2','HDMI 2'],['hdmi3','HDMI 3'],['hdmi4','HDMI 4']], cur = self.data && self.data.dest, seen = {}; (self.apps || []).filter(function(a){ return a.id && a.title && a.id !== 'com.webos.app.home' && a.id !== 'com.webos.app.fullhome' && (S.hide || []).indexOf(a.id) < 0 && !seen[a.id] && (seen[a.id] = 1); }).sort(function(x, y){ return x.title < y.title ? -1 : 1; }).forEach(function(a){ o.push(['app:' + a.id, 'App: ' + a.title]); }); if (cur && cur.indexOf('app:') === 0 && !seen[cur.slice(4)]) o.push([cur, 'App: ' + cur.slice(4)]); return o; }, function(){ return (self.data && self.data.dest) || 'home'; }, function(v){ self.data = self.data || {}; self.data.dest = v; api('/api/poweron?v=' + v, function(err, r){ toast(err ? 'Could not change that' : 'Saved'); }); }),
-    lgTgl('option', 'standByLight', 'Standby light', ''), lgChc('option', 'logoLight', 'LG logo light', '', LEVELS), lgTgl('option', 'powerOnLight', 'Power-on light', ''),
-    head('Timers'),
-    lgChc('time', 'sleepTimer', 'Sleep timer', 'Turns the TV off after this time', SLEEPS),
-    lgChc('time', 'noOperationAutoOff', 'Turn off when nobody uses the remote', 'In hours', [['off','Off'],['3','3 h'],['6','6 h'],['12','12 h'],['24','24 h']]),
-    lgChc('time', 'automaticStandBy', 'Automatic standby', 'In hours without any activity', [['0','Off'],['2','2 h'],['4','4 h'],['6','6 h'],['8','8 h']]),
-    lgTgl('time', 'noSignalAutoOff', 'Turn off when there is no signal', ''),
-    head('Clock'),
-    lgTgl('time', 'autoClock', 'Set the clock automatically', ''), lgChc('time', 'daylightSaving', 'Daylight saving time', '', [['auto','Automatic'],['on','On'],['off','Off']]),
-    inf('Time zone', function(){ return tz && tz.City ? tz.City + ' (' + (tz.Description || '') + ')' : '–'; }, 'Change the time zone in LG Settings (legacy) if you move.'),
-    head('Restart'),
-    act('Restart TV', 'Reboots; Home is back in about a minute', function(){ panelOpen('Restart the TV?', [['Restart now', '', function(){ panelClose(); apiPost('/api/reboot', '', function(){ toast('Restarting…'); }); }], ['Cancel', '', panelClose]]); })
+    lgTgl('option', 'quickStartMode', 'Démarrage rapide', 'La TV s’allume en deux secondes au lieu d’un démarrage complet. Consomme un peu plus en veille. Activé est recommandé : ça fonctionne avec cet accueil et ne change rien au blocage des mises à jour LG.'),
+    chc('À l’allumage, aller sur', 'Accueil = notre écran d’accueil. « Là où elle était » = le comportement de LG (l’entrée ou l’app quittée). S’applique au démarrage rapide et au démarrage complet.', function(){ var o = [['home','Accueil (recommandé)'],['last','Là où elle était'],['hdmi1','HDMI 1'],['hdmi2','HDMI 2'],['hdmi3','HDMI 3'],['hdmi4','HDMI 4']], cur = self.data && self.data.dest, seen = {}; (self.apps || []).filter(function(a){ return a.id && a.title && a.id !== 'com.webos.app.home' && a.id !== 'com.webos.app.fullhome' && (S.hide || []).indexOf(a.id) < 0 && !seen[a.id] && (seen[a.id] = 1); }).sort(function(x, y){ return x.title < y.title ? -1 : 1; }).forEach(function(a){ o.push(['app:' + a.id, 'App : ' + a.title]); }); if (cur && cur.indexOf('app:') === 0 && !seen[cur.slice(4)]) o.push([cur, 'App : ' + cur.slice(4)]); return o; }, function(){ return (self.data && self.data.dest) || 'home'; }, function(v){ self.data = self.data || {}; self.data.dest = v; api('/api/poweron?v=' + v, function(err, r){ toast(err ? 'Impossible de modifier ce réglage' : 'Enregistré'); }); }),
+    lgTgl('option', 'standByLight', 'Voyant de veille', ''), lgChc('option', 'logoLight', 'Logo LG lumineux', '', LEVELS), lgTgl('option', 'powerOnLight', 'Voyant d’allumage', ''),
+    head('Minuteries'),
+    lgChc('time', 'sleepTimer', 'Minuterie de mise en veille', 'Éteint la TV après ce délai', SLEEPS),
+    lgChc('time', 'noOperationAutoOff', 'Éteindre sans utilisation de la télécommande', 'En heures', [['off','Désactivé'],['3','3 h'],['6','6 h'],['12','12 h'],['24','24 h']]),
+    lgChc('time', 'automaticStandBy', 'Veille automatique', 'En heures sans aucune activité', [['0','Désactivé'],['2','2 h'],['4','4 h'],['6','6 h'],['8','8 h']]),
+    lgTgl('time', 'noSignalAutoOff', 'Éteindre en l’absence de signal', ''),
+    head('Horloge'),
+    lgTgl('time', 'autoClock', 'Régler l’heure automatiquement', ''), lgChc('time', 'daylightSaving', 'Heure d’été', '', [['auto','Automatique'],['on','Activé'],['off','Désactivé']]),
+    inf('Fuseau horaire', function(){ return tz && tz.City ? tz.City + ' (' + (tz.Description || '') + ')' : '–'; }, 'Change le fuseau horaire dans Réglages LG (ancien) si tu déménages.'),
+    head('Redémarrage'),
+    act('Redémarrer la TV', 'Redémarre ; l’accueil revient en une minute environ', function(){ panelOpen('Redémarrer la TV ?', [['Redémarrer maintenant', '', function(){ panelClose(); apiPost('/api/reboot', '', function(){ toast('Redémarrage…'); }); }], ['Annuler', '', panelClose]]); })
   ]; }},
-  {id: 'inputs', name: 'Inputs & HDMI', icon: 'hdmi', title: 'Inputs & HDMI', desc: 'Per-port picture format and device control.',
+  {id: 'inputs', name: 'Entrées et HDMI', icon: 'hdmi', title: 'Entrées et HDMI', desc: 'Format d’image par port et contrôle des appareils.',
     lg: [['other', ['uhdDeepColorHDMI1','uhdDeepColorHDMI2','uhdDeepColorHDMI3','uhdDeepColorHDMI4','gameOptimizationHDMI1','gameOptimizationHDMI2','gameOptimizationHDMI3','gameOptimizationHDMI4','simplinkEnable','simplinkAutoPowerOn']],
          ['sound', ['inputAudioFormatHDMI1','inputAudioFormatHDMI2','inputAudioFormatHDMI3','inputAudioFormatHDMI4']]], build: function(){
-    var o = [head('HDMI ULTRA HD Deep Colour (needed for 4K HDR; turn off if a device has no picture)')], i, n;
+    var o = [head('HDMI ULTRA HD Deep Colour (nécessaire pour la 4K HDR ; à désactiver si un appareil n’affiche rien)')], i, n;
     for (i = 1; i <= 4; i++) o.push(lgTgl('other', 'uhdDeepColorHDMI' + i, 'HDMI ' + i + ' Deep Colour', ''));
-    o.push(head('Game optimization (low delay)')); for (i = 1; i <= 4; i++) o.push(lgTgl('other', 'gameOptimizationHDMI' + i, 'HDMI ' + i + ' game optimization', ''));
-    o.push(head('HDMI audio format')); for (i = 1; i <= 4; i++) o.push(lgChc('sound', 'inputAudioFormatHDMI' + i, 'HDMI ' + i + ' audio', '', [['pcm','PCM'],['bitstream','Bitstream']]));
-    o.push(head('Device control (SIMPLINK / HDMI-CEC)'));
-    o.push(lgTgl('other', 'simplinkEnable', 'SIMPLINK', 'Lets connected devices turn the TV on and control it'), lgTgl('other', 'simplinkAutoPowerOn', 'SIMPLINK auto power on', ''));
+    o.push(head('Optimisation jeu (faible latence)')); for (i = 1; i <= 4; i++) o.push(lgTgl('other', 'gameOptimizationHDMI' + i, 'HDMI ' + i + ' optimisation jeu', ''));
+    o.push(head('Format audio HDMI')); for (i = 1; i <= 4; i++) o.push(lgChc('sound', 'inputAudioFormatHDMI' + i, 'HDMI ' + i + ' audio', '', [['pcm','PCM'],['bitstream','Bitstream']]));
+    o.push(head('Contrôle des appareils (SIMPLINK / HDMI-CEC)'));
+    o.push(lgTgl('other', 'simplinkEnable', 'SIMPLINK', 'Permet aux appareils branchés d’allumer et de piloter la TV'), lgTgl('other', 'simplinkAutoPowerOn', 'Allumage automatique SIMPLINK', ''));
     return o; }},
-  {id: 'remote', name: 'Remote & pointer', icon: 'remote', title: 'Remote & pointer', desc: 'The Settings button and the Magic Remote pointer. LG has no real off switch for the pointer, so the first option asks the remote itself to stay quiet (experimental) and the rest tune it.', info: '/api/gear',
+  {id: 'remote', name: 'Télécommande et pointeur', icon: 'remote', title: 'Télécommande et pointeur', desc: 'Le bouton Réglages et le pointeur de la Magic Remote. LG ne permet pas vraiment de couper le pointeur : la première option demande à la télécommande de rester discrète (expérimental), les autres l’ajustent.', info: '/api/gear',
     lg: [['option', ['pointerSpeed','pointerSize','pointerShape','pointerAlignment']], ['other', ['cursorAutoRemover']]], build: function(){ var self = this; return [
-    chc('Settings button opens', 'The gear button on the remote', [['ours','This Settings screen'],['lg','LG’s quick panel']], function(){ return (self.data && self.data.gear) || 'ours'; }, function(v){ self.data = self.data || {}; self.data.gear = v; api('/api/gear?v=' + v, function(){ toast(v === 'ours' ? 'The Settings button now opens this screen' : 'The Settings button opens LG’s panel again'); }); }),
-    tgl('Back from an app returns to the previous app', 'When an app quits on Back, open the app or input you were in before it. With nothing before it you land on Home, as usual.', function(){ return !(self.data && self.data.chain === 'off'); }, function(b){ self.data = self.data || {}; self.data.chain = b ? 'on' : 'off'; api('/api/backchain?v=' + (b ? 'on' : 'off'), function(){ toast(b ? 'Back now returns to the previous app' : 'Back from an app goes to Home again'); }); }),
-    chc('Leave an app with Back', 'Apps decide what a normal Back press does (Netflix ignores it on its start screen). With this on, holding Back or pressing it twice quickly takes you out of the app: to the previous app, or Home when there is none.', [['both','Hold or press twice'],['hold','Hold Back'],['double','Press twice quickly'],['off','Let the app decide']], function(){ return (self.data && self.data.back && self.data.back.leave) || 'both'; }, function(v){ backOpt('leave', v); }),
-    chc('Forget where I was', 'The Back button can take you back to the apps and inputs you used. Choose when that memory is wiped, so the TV feels freshly turned on.', [['never','Never'],['saver','When the screensaver starts'],['saver_standby','Screensaver or TV off']], function(){ return (self.data && self.data.back && self.data.back.reset) || 'saver'; }, function(v){ backOpt('reset', v); }),
-    chc('Forget apps I left a while ago', 'Apps and inputs you left longer ago than this are skipped by Back.', [['0','Never'],['5','5 minutes'],['15','15 minutes'],['30','30 minutes'],['60','1 hour'],['240','4 hours']], function(){ return String((self.data && self.data.back && self.data.back.forget) || 0); }, function(v){ backOpt('forget', v); }),
-    chc('How many steps Back can go', 'How far back Back can walk through the apps you used.', [['1','1'],['2','2'],['3','3'],['5','5'],['8','8']], function(){ return String((self.data && self.data.back && self.data.back.depth) || 8); }, function(v){ backOpt('depth', v); }),
-    chc('Apps kept in memory', 'The app in front plus the last one you used stay in memory, so switching back is instant; opening a third app closes the oldest one. Fewer apps in memory means a quicker TV. A music app you left playing stops once it is pushed out. Inputs count as apps; Home, AirPlay and LG’s system apps are never closed.', [['0','No limit'],['1','Only the current one'],['2','Current + last (2)'],['3','3 apps'],['4','4 apps']], function(){ return String((self.data && self.data.back && self.data.back.keep !== undefined) ? self.data.back.keep : 2); }, function(v){ backOpt('keep', v); }),
-    chc('Close inputs I left after', 'An HDMI input you left in the background holds about 50-60 MB of memory. Closing it frees that; coming back to it takes about 0.7 s instead of 0.3 s. Your devices stay connected.', [['0','Never'],['2','2 minutes'],['5','5 minutes'],['15','15 minutes'],['60','1 hour']], function(){ return String((self.data && self.data.back && self.data.back.closeinputs !== undefined) ? self.data.back.closeinputs : 5); }, function(v){ backOpt('closeinputs', v); }),
-    chc('Close apps I left on Home after', 'Frees memory so the TV stays quick: a streaming app you left in the background is closed after this time (Netflix alone holds about 125 MB). It starts again when you open it. Music that plays in the background stops too, so choose Never if you use a music app. LG’s own apps and inputs are never closed.', [['0','Never'],['30','30 minutes'],['60','1 hour'],['120','2 hours'],['300','5 hours']], function(){ return String((self.data && self.data.back && self.data.back.closeidle !== undefined) ? self.data.back.closeidle : 120); }, function(v){ backOpt('closeidle', v); }),
-    tgl('Hide the Magic Remote pointer', 'Second layer under "Make the Magic Remote pointer invisible" (Services & privacy): the moment the remote asks for its arrow (shake, movement, wheel) the TV is told to hide it again. Clicks and buttons keep working.', function(){ return !(self.data && self.data.pointerhide === 'off'); }, function(b){ self.data = self.data || {}; self.data.pointerhide = b ? 'on' : 'off'; api('/api/pointerhide?v=' + (b ? 'on' : 'off'), function(){ toast(b ? 'The pointer is hidden' : 'The pointer behaves like LG’s again'); }); }),
-    tgl('Pointer only when I shake the remote', 'Experimental. Asks the Magic Remote to show the arrow only after a shake, not on every movement. Applied again by itself each time the remote wakes up. Press a button on the remote first, then switch this on.', function(){ return !!(self.data && self.data.pointer === 'off'); }, function(b){ self.data = self.data || {}; self.data.pointer = b ? 'off' : 'on'; api('/api/pointer?v=' + (b ? 'off' : 'on'), function(err, j){ toast((j && j.msg) || (err ? 'Could not reach the TV' : 'Done')); }, 25000); }),
-    tgl('Hide the pointer on Home and in Settings', 'Asks the browser not to draw an arrow on Home and in Settings. LG draws its own pointer on top, so it may still appear.', function(){ return !!S.ui.hideCursor; }, function(b){ setPath('ui.hideCursor', b); }),
-    head('LG pointer options'),
-    lgChc('option', 'pointerSpeed', 'Pointer speed', '', [['slow','Slow'],['normal','Normal'],['fast','Fast']]), lgChc('option', 'pointerSize', 'Pointer size', '', [['small','Small'],['medium','Medium'],['large','Large']]),
-    lgChc('option', 'pointerShape', 'Pointer shape', '', [['a','Shape A'],['b','Shape B'],['c','Shape C'],['d','Shape D']]), lgTgl('option', 'pointerAlignment', 'Pointer alignment', 'Keeps the pointer on the item you selected with the arrow keys'),
-    lgTgl('other', 'cursorAutoRemover', 'Hide the pointer after a few seconds', 'LG hides the pointer by itself when you stop moving the remote')
+    chc('Le bouton Réglages ouvre', 'Le bouton roue dentée de la télécommande', [['ours','Cet écran Réglages'],['lg','Le panneau rapide de LG']], function(){ return (self.data && self.data.gear) || 'ours'; }, function(v){ self.data = self.data || {}; self.data.gear = v; api('/api/gear?v=' + v, function(){ toast(v === 'ours' ? 'Le bouton Réglages ouvre maintenant cet écran' : 'Le bouton Réglages ouvre à nouveau le panneau de LG'); }); }),
+    tgl('Retour depuis une app ramène à l’app précédente', 'Quand une app se ferme avec Retour, rouvre l’app ou l’entrée d’avant. S’il n’y en a pas, tu arrives sur l’accueil, comme d’habitude.', function(){ return !(self.data && self.data.chain === 'off'); }, function(b){ self.data = self.data || {}; self.data.chain = b ? 'on' : 'off'; api('/api/backchain?v=' + (b ? 'on' : 'off'), function(){ toast(b ? 'Retour ramène maintenant à l’app précédente' : 'Retour depuis une app ramène à nouveau à l’accueil'); }); }),
+    chc('Quitter une app avec Retour', 'Chaque app décide de l’effet d’un appui sur Retour (Netflix l’ignore sur son écran d’accueil). Avec cette option, maintenir Retour ou l’appuyer deux fois vite fait sortir de l’app : vers l’app précédente, ou l’accueil s’il n’y en a pas.', [['both','Maintenir ou appuyer deux fois'],['hold','Maintenir Retour'],['double','Appuyer deux fois vite'],['off','Laisser l’app décider']], function(){ return (self.data && self.data.back && self.data.back.leave) || 'both'; }, function(v){ backOpt('leave', v); }),
+    chc('Oublier où j’étais', 'Le bouton Retour peut te ramener aux apps et entrées utilisées. Choisis quand cette mémoire s’efface, pour retrouver une TV comme fraîchement allumée.', [['never','Jamais'],['saver','Au démarrage de la veille'],['saver_standby','Veille ou TV éteinte']], function(){ return (self.data && self.data.back && self.data.back.reset) || 'saver'; }, function(v){ backOpt('reset', v); }),
+    chc('Oublier les apps quittées depuis longtemps', 'Retour saute les apps et entrées quittées depuis plus longtemps que ce délai.', [['0','Jamais'],['5','5 minutes'],['15','15 minutes'],['30','30 minutes'],['60','1 heure'],['240','4 heures']], function(){ return String((self.data && self.data.back && self.data.back.forget) || 0); }, function(v){ backOpt('forget', v); }),
+    chc('Nombre de pas en arrière', 'Jusqu’où Retour peut remonter dans les apps utilisées.', [['1','1'],['2','2'],['3','3'],['5','5'],['8','8']], function(){ return String((self.data && self.data.back && self.data.back.depth) || 8); }, function(v){ backOpt('depth', v); }),
+    chc('Apps gardées en mémoire', 'L’app affichée et la dernière utilisée restent en mémoire, pour revenir instantanément ; ouvrir une troisième app ferme la plus ancienne. Moins d’apps en mémoire = une TV plus rapide. Une app de musique laissée en lecture s’arrête quand elle est fermée. Les entrées comptent comme des apps ; l’accueil, AirPlay et les apps système de LG ne sont jamais fermés.', [['0','Sans limite'],['1','Seulement l’app actuelle'],['2','Actuelle + précédente (2)'],['3','3 apps'],['4','4 apps']], function(){ return String((self.data && self.data.back && self.data.back.keep !== undefined) ? self.data.back.keep : 2); }, function(v){ backOpt('keep', v); }),
+    chc('Fermer les entrées quittées après', 'Une entrée HDMI laissée en arrière-plan occupe 50 à 60 Mo de mémoire. La fermer les libère ; y revenir prend 0,7 s au lieu de 0,3 s. Tes appareils restent connectés.', [['0','Jamais'],['2','2 minutes'],['5','5 minutes'],['15','15 minutes'],['60','1 heure']], function(){ return String((self.data && self.data.back && self.data.back.closeinputs !== undefined) ? self.data.back.closeinputs : 5); }, function(v){ backOpt('closeinputs', v); }),
+    chc('Fermer les apps quittées après', 'Libère de la mémoire pour garder la TV rapide : une app de streaming laissée en arrière-plan est fermée après ce délai (Netflix seul occupe environ 125 Mo). Elle redémarre quand tu l’ouvres. La musique en arrière-plan s’arrête aussi : choisis Jamais si tu utilises une app de musique. Les apps de LG et les entrées ne sont jamais fermées.', [['0','Jamais'],['30','30 minutes'],['60','1 heure'],['120','2 heures'],['300','5 heures']], function(){ return String((self.data && self.data.back && self.data.back.closeidle !== undefined) ? self.data.back.closeidle : 120); }, function(v){ backOpt('closeidle', v); }),
+    tgl('Masquer le pointeur de la Magic Remote', 'Deuxième protection, en plus de « Rendre invisible le pointeur de la Magic Remote » (Services et confidentialité) : dès que la télécommande affiche sa flèche (secousse, mouvement, molette), la TV la masque. Les clics et les boutons fonctionnent toujours.', function(){ return !(self.data && self.data.pointerhide === 'off'); }, function(b){ self.data = self.data || {}; self.data.pointerhide = b ? 'on' : 'off'; api('/api/pointerhide?v=' + (b ? 'on' : 'off'), function(){ toast(b ? 'Le pointeur est masqué' : 'Le pointeur se comporte à nouveau comme chez LG'); }); }),
+    tgl('Pointeur seulement en secouant la télécommande', 'Expérimental. Demande à la Magic Remote de n’afficher la flèche qu’après une secousse, pas à chaque mouvement. Réappliqué tout seul à chaque réveil de la télécommande. Appuie d’abord sur un bouton de la télécommande, puis active cette option.', function(){ return !!(self.data && self.data.pointer === 'off'); }, function(b){ self.data = self.data || {}; self.data.pointer = b ? 'off' : 'on'; api('/api/pointer?v=' + (b ? 'off' : 'on'), function(err, j){ toast((j && j.msg) || (err ? 'Impossible de joindre la TV' : 'Fait')); }, 25000); }),
+    tgl('Masquer le pointeur sur l’accueil et dans Réglages', 'Demande au navigateur de ne pas dessiner de flèche sur l’accueil et dans Réglages. LG dessine son propre pointeur par-dessus : il peut encore apparaître.', function(){ return !!S.ui.hideCursor; }, function(b){ setPath('ui.hideCursor', b); }),
+    head('Options du pointeur LG'),
+    lgChc('option', 'pointerSpeed', 'Vitesse du pointeur', '', [['slow','Lent'],['normal','Normal'],['fast','Rapide']]), lgChc('option', 'pointerSize', 'Taille du pointeur', '', [['small','Petit'],['medium','Moyen'],['large','Grand']]),
+    lgChc('option', 'pointerShape', 'Forme du pointeur', '', [['a','Shape A'],['b','Shape B'],['c','Shape C'],['d','Shape D']]), lgTgl('option', 'pointerAlignment', 'Alignement du pointeur', 'Garde le pointeur sur l’élément choisi avec les flèches'),
+    lgTgl('other', 'cursorAutoRemover', 'Masquer le pointeur après quelques secondes', 'LG masque le pointeur quand la télécommande ne bouge plus')
   ]; }},
-  {id: 'access', name: 'Accessibility', icon: 'access', title: 'Accessibility', desc: '',
+  {id: 'access', name: 'Accessibilité', icon: 'access', title: 'Accessibilité', desc: '',
     lg: [['option', ['highContrast','audioGuidance','audioGuidanceSpeed','audioGuidanceVolume','audioGuidancePitch','menuTransparency','animationGuide','baloonHelp','focusedItemEnlarged']], ['sound', ['audioDescription','visualImpaired']], ['caption', ['captionEnable','hardOfHearing']]], build: function(){ return [
-    lgTgl('caption', 'captionEnable', 'Subtitles / captions', 'Show captions when the program has them'), lgTgl('caption', 'hardOfHearing', 'Captions for the hard of hearing', ''),
+    lgTgl('caption', 'captionEnable', 'Sous-titres', 'Affiche les sous-titres quand le programme en a'), lgTgl('caption', 'hardOfHearing', 'Sous-titres pour malentendants', ''),
     head('Vision'),
-    lgTgl('option', 'highContrast', 'High contrast', ''), lgTgl('option', 'focusedItemEnlarged', 'Enlarge the selected item', ''), lgTgl('option', 'menuTransparency', 'Menu transparency', ''),
-    lgTgl('option', 'audioGuidance', 'Audio guidance', 'Reads menus out loud'), lgChc('option', 'audioGuidanceSpeed', 'Audio guidance speed', '', [['verySlow','Very slow'],['slow','Slow'],['medium','Medium'],['fast','Fast'],['veryFast','Very fast']]),
-    lgChc('option', 'audioGuidanceVolume', 'Audio guidance volume', '', [['veryLow','Very low'],['low','Low'],['medium','Medium'],['high','High'],['veryHigh','Very high']]),
-    lgChc('option', 'audioGuidancePitch', 'Audio guidance pitch', '', [['veryLow','Very low'],['low','Low'],['medium','Medium'],['high','High'],['veryHigh','Very high']]),
-    lgTgl('sound', 'audioDescription', 'Audio description', 'Narration of what happens on screen'), lgTgl('sound', 'visualImpaired', 'Audio for the visually impaired', ''),
-    head('Help'), lgTgl('option', 'animationGuide', 'Animation guide', ''), lgTgl('option', 'baloonHelp', 'Help balloons', '')
+    lgTgl('option', 'highContrast', 'Contraste élevé', ''), lgTgl('option', 'focusedItemEnlarged', 'Agrandir l’élément sélectionné', ''), lgTgl('option', 'menuTransparency', 'Transparence des menus', ''),
+    lgTgl('option', 'audioGuidance', 'Guide audio', 'Lit les menus à voix haute'), lgChc('option', 'audioGuidanceSpeed', 'Vitesse du guide audio', '', [['verySlow','Très lent'],['slow','Lent'],['medium','Moyen'],['fast','Rapide'],['veryFast','Très rapide']]),
+    lgChc('option', 'audioGuidanceVolume', 'Volume du guide audio', '', [['veryLow','Très bas'],['low','Bas'],['medium','Moyen'],['high','Élevé'],['veryHigh','Très élevé']]),
+    lgChc('option', 'audioGuidancePitch', 'Tonalité du guide audio', '', [['veryLow','Très bas'],['low','Bas'],['medium','Moyen'],['high','Élevé'],['veryHigh','Très élevé']]),
+    lgTgl('sound', 'audioDescription', 'Audiodescription', 'Description de ce qui se passe à l’écran'), lgTgl('sound', 'visualImpaired', 'Audio pour malvoyants', ''),
+    head('Aide'), lgTgl('option', 'animationGuide', 'Guide animé', ''), lgTgl('option', 'baloonHelp', 'Bulles d’aide', '')
   ]; }},
-  {id: 'net', name: 'Network', icon: 'net', title: 'Network', desc: '', info: '/api/net', lg: [['network', ['wolwowlOnOff','bleAdvertisingOnOff','allowMobileDeviceAccess']]], build: function(){ var self = this, j = this.data || {}, w = j.wired || {}, f = j.wifi || {}; if (!self.wifi && !self.wifiAsked) { self.wifiAsked = true; api('/api/wifi', function(err, x){ if (x) { self.wifi = x; if (settingsOn && cats[catIdx].id === 'net') renderCat(false); } }, 10000); } return [
-    inf('Connection', function(){ return w.state === 'connected' ? 'Ethernet' : f.state === 'connected' ? 'Wi-Fi' : 'Offline'; }),
-    inf('IP address', function(){ return w.ipAddress || f.ipAddress || '–'; }),
-    inf('Wi-Fi network', function(){ return f.state === 'connected' ? (f.ssid || 'connected') : '–'; }),
-    inf('Gateway (router)', function(){ return w.gateway || f.gateway || '–'; }),
-    inf('Wi-Fi radio', function(){ var s = (self.wifi && self.wifi.status && self.wifi.status.status) || ''; return !self.wifi ? '–' : s === 'serviceEnabled' ? 'on' : s ? s : '–'; }),
-    inf('Saved Wi-Fi networks', function(){ var l = (self.wifi && self.wifi.saved && self.wifi.saved.profileList) || []; if (!self.wifi) return '–'; return l.length ? l.map(function(p){ return p.wifiProfile && p.wifiProfile.ssid; }).join(', ') : 'none'; }, 'Networks the TV remembers. To join a new one, use the last row.'),
+  {id: 'net', name: 'Réseau', icon: 'net', title: 'Réseau', desc: '', info: '/api/net', lg: [['network', ['wolwowlOnOff','bleAdvertisingOnOff','allowMobileDeviceAccess']]], build: function(){ var self = this, j = this.data || {}, w = j.wired || {}, f = j.wifi || {}; if (!self.wifi && !self.wifiAsked) { self.wifiAsked = true; api('/api/wifi', function(err, x){ if (x) { self.wifi = x; if (settingsOn && cats[catIdx].id === 'net') renderCat(false); } }, 10000); } return [
+    inf('Connexion', function(){ return w.state === 'connected' ? 'Ethernet' : f.state === 'connected' ? 'Wi-Fi' : 'Hors ligne'; }),
+    inf('Adresse IP', function(){ return w.ipAddress || f.ipAddress || '–'; }),
+    inf('Réseau Wi-Fi', function(){ return f.state === 'connected' ? (f.ssid || 'connected') : '–'; }),
+    inf('Passerelle (box)', function(){ return w.gateway || f.gateway || '–'; }),
+    inf('Wi-Fi', function(){ var s = (self.wifi && self.wifi.status && self.wifi.status.status) || ''; return !self.wifi ? '–' : s === 'serviceEnabled' ? 'on' : s ? s : '–'; }),
+    inf('Réseaux Wi-Fi enregistrés', function(){ var l = (self.wifi && self.wifi.saved && self.wifi.saved.profileList) || []; if (!self.wifi) return '–'; return l.length ? l.map(function(p){ return p.wifiProfile && p.wifiProfile.ssid; }).join(', ') : 'none'; }, 'Les réseaux que la TV connaît. Pour en rejoindre un nouveau, utilise la dernière ligne.'),
     inf('DNS', function(){ return w.dns1 || f.dns1 || '–'; }),
-    inf('Internet', function(){ return j.isInternetConnectionAvailable ? 'available' : 'not available'; }),
-    lgTgl('network', 'wolwowlOnOff', 'Turn on with a network signal', 'Wake on LAN / Wi-Fi: lets your phone or computer switch the TV on', 'true', 'false'),
-    lgTgl('network', 'bleAdvertisingOnOff', 'Bluetooth advertising', 'Lets nearby phones find the TV'),
-    lgTgl('network', 'allowMobileDeviceAccess', 'Allow mobile devices to connect', '', 'true', 'false'),
-    act('Join a Wi-Fi network (LG Settings)', 'Opens LG’s own Settings for Wi-Fi setup', function(){ launch('com.palm.app.settings'); })
+    inf('Internet', function(){ return j.isInternetConnectionAvailable ? 'available' : 'indisponible'; }),
+    lgTgl('network', 'wolwowlOnOff', 'Allumer par le réseau', 'Wake on LAN / Wi-Fi : ton téléphone ou ton ordinateur peut allumer la TV', 'true', 'false'),
+    lgTgl('network', 'bleAdvertisingOnOff', 'Visibilité Bluetooth', 'Les téléphones proches peuvent trouver la TV'),
+    lgTgl('network', 'allowMobileDeviceAccess', 'Autoriser la connexion des appareils mobiles', '', 'true', 'false'),
+    act('Rejoindre un réseau Wi-Fi (Réglages LG)', 'Ouvre les Réglages de LG pour configurer le Wi-Fi', function(){ launch('com.palm.app.settings'); })
   ]; }},
-  {id: 'access', name: 'Remote access', icon: 'remote', title: 'Remote access (SSH / Telnet)', desc: 'How to find this TV and reach it from a computer on the same network. SSH is the safe way in and stays on. Telnet is the emergency door with no password.', info: '/api/remote', build: function(){
-    var self = this, j = this.data || {}, ssh = j.ssh || {}, tel = j.telnet || {}, ip = j.ethIp || j.wifiIp || 'the TV’s IP address', rows = [];
-    rows.push(head('Find this TV'));
-    rows.push(inf('Name', j.host || '–'));
-    rows.push(inf('Wired IP address', j.ethIp || 'not connected', 'Use this one when the TV is on a cable. Give it a fixed address in your router (DHCP reservation) so it never changes.'));
-    rows.push(inf('Wi-Fi IP address', j.wifiIp || 'not connected'));
-    rows.push(inf('MAC address (wired)', j.ethMac || '–', 'What you enter in the router to reserve the address above.'));
-    if (j.wifiMac) rows.push(inf('MAC address (Wi-Fi)', j.wifiMac));
-    rows.push(head('SSH (secure shell)'));
-    rows.push(inf('Status', ssh.listening ? 'on, always' : 'not running', 'SSH is how the project is installed and repaired, so it cannot be switched off here.'));
-    rows.push(inf('Connect with', 'ssh root@' + ip, 'Run that in a terminal on a computer on the same network.'));
-    rows.push(inf('Keys installed', String(ssh.keys === undefined ? '–' : ssh.keys), ssh.keys > 0 ? 'Key login works from the computer that has the matching key.' : 'No key yet: add one with  ssh-copy-id root@' + ip));
-    rows.push(head('Telnet (no password)'));
-    rows.push(tgl('Telnet', 'On: anyone on your network can open a root shell with  telnet ' + ip + '. It is the emergency way in if SSH ever breaks. Off: only SSH works. Turning it off needs an SSH key to be installed first, and turning the whole project off (revert.sh) turns it back on.', function(){ return !!tel.listening; }, function(b){
-      if (!b && !self.confirmOff) { self.confirmOff = true; toast('Press again to turn Telnet off'); setTimeout(function(){ self.confirmOff = false; if (settingsOn && cats[catIdx].id === 'access') renderCat(false); }, 6000); renderCat(false); return; }
+  {id: 'access', name: 'Accès à distance', icon: 'remote', title: 'Accès à distance (SSH / Telnet)', desc: 'Comment trouver cette TV et s’y connecter depuis un ordinateur du même réseau. SSH est l’accès sûr et reste actif. Telnet est la porte de secours, sans mot de passe.', info: '/api/remote', build: function(){
+    var self = this, j = this.data || {}, ssh = j.ssh || {}, tel = j.telnet || {}, ip = j.ethIp || j.wifiIp || 'l’adresse IP de la TV', rows = [];
+    rows.push(head('Trouver cette TV'));
+    rows.push(inf('Nom', j.host || '–'));
+    rows.push(inf('Adresse IP (câble)', j.ethIp || 'non connecté', 'Celle-ci quand la TV est branchée par câble. Réserve-lui une adresse fixe dans ta box (réservation DHCP) pour qu’elle ne change jamais.'));
+    rows.push(inf('Adresse IP (Wi-Fi)', j.wifiIp || 'non connecté'));
+    rows.push(inf('Adresse MAC (câble)', j.ethMac || '–', 'À saisir dans la box pour réserver l’adresse ci-dessus.'));
+    if (j.wifiMac) rows.push(inf('Adresse MAC (Wi-Fi)', j.wifiMac));
+    rows.push(head('SSH (accès sécurisé)'));
+    rows.push(inf('État', ssh.listening ? 'activé en permanence' : 'arrêté', 'SSH sert à installer et réparer le projet : il ne peut pas être coupé ici.'));
+    rows.push(inf('Se connecter avec', 'ssh root@' + ip, 'À taper dans un terminal, sur un ordinateur du même réseau.'));
+    rows.push(inf('Clés installées', String(ssh.keys === undefined ? '–' : ssh.keys), ssh.keys > 0 ? 'La connexion par clé fonctionne depuis l’ordinateur qui a la clé correspondante.' : 'Pas encore de clé : ajoute-en une avec  ssh-copy-id root@' + ip));
+    rows.push(head('Telnet (sans mot de passe)'));
+    rows.push(tgl('Telnet', 'Activé : n’importe qui sur ton réseau peut ouvrir un shell root avec  telnet ' + ip + '. It is the emergency way in if SSH ever breaks. Off: only SSH works. Turning it off needs an SSH key to be installed first, and turning the whole project off (revert.sh) turns it back on.', function(){ return !!tel.listening; }, function(b){
+      if (!b && !self.confirmOff) { self.confirmOff = true; toast('Appuie à nouveau pour couper Telnet'); setTimeout(function(){ self.confirmOff = false; if (settingsOn && cats[catIdx].id === 'access') renderCat(false); }, 6000); renderCat(false); return; }
       self.confirmOff = false;
-      api('/api/remote/telnet?v=' + (b ? 'on' : 'off'), function(err, r){ toast((r && r.msg) ? ('Telnet: ' + r.msg) : 'Could not change that'); setTimeout(function(){ if (settingsOn && cats[catIdx].id === 'access') renderCat(true); }, 1500); }, 20000); }));
-    rows.push(inf('Connect with', 'telnet ' + ip));
-    rows.push(head('For developers'));
-    rows.push(inf('Debug page (DevTools)', j.devtools && j.devtools.on ? 'on, port 9998' : 'off', 'Only on while the DEBUG flag exists. Normally off.'));
-    rows.push(inf('TV helper service', 'port ' + ((j.api && j.api.port) || 8765), 'Used by the Home screen and the phone page. Only the phone page and photo routes answer to other devices, and only with the secret link.'));
+      api('/api/remote/telnet?v=' + (b ? 'on' : 'off'), function(err, r){ toast((r && r.msg) ? ('Telnet: ' + r.msg) : 'Impossible de modifier ce réglage'); setTimeout(function(){ if (settingsOn && cats[catIdx].id === 'access') renderCat(true); }, 1500); }, 20000); }));
+    rows.push(inf('Se connecter avec', 'telnet ' + ip));
+    rows.push(head('Pour les développeurs'));
+    rows.push(inf('Page de débogage (DevTools)', j.devtools && j.devtools.on ? 'activée, port 9998' : 'off', 'Active seulement si le fichier DEBUG existe. Normalement coupée.'));
+    rows.push(inf('Service d’assistance de la TV', 'port ' + ((j.api && j.api.port) || 8765), 'Utilisé par l’accueil et la page du téléphone. Seules la page du téléphone et les photos répondent aux autres appareils, et seulement avec le lien secret.'));
     return rows; }},
-  {id: 'block', name: 'Ad blocking', icon: 'block', title: 'Ad blocking', desc: 'Pi-hole style: names on these lists are made unreachable for every app on the TV. A name is never blocked if it is on the always-allowed list.', info: '/api/block', build: function(){
+  {id: 'block', name: 'Blocage des pubs', icon: 'block', title: 'Blocage des pubs', desc: 'Comme Pi-hole : les adresses de ces listes deviennent injoignables pour toutes les apps de la TV. Une adresse de la liste toujours autorisée n’est jamais bloquée.', info: '/api/block', build: function(){
     var self = this, d = this.data || {}, lists = d.lists || [], out = [];
-    out.push(inf('Names blocked right now', num(d.blocked || 0), 'Each name lookup takes a few milliseconds longer per thousand names.'));
-    out.push(head('Block lists'));
+    out.push(inf('Adresses bloquées actuellement', num(d.blocked || 0), 'Chaque recherche d’adresse prend quelques millisecondes de plus par millier d’adresses.'));
+    out.push(head('Listes de blocage'));
     lists.forEach(function(l){
-      var sub = l.desc + '  (' + num(l.count) + ' names' + (l.kind === 'remote' ? (l.stamp ? ', updated ' + fmtDate2(l.stamp) : ', not downloaded yet') : '') + ')';
-      out.push(tgl(l.name, sub, function(){ return l.on; }, function(b){ l.on = b; toast(b ? 'Turning on ' + l.name + '…' : 'Turning off ' + l.name + '…');
-        apiPost('/api/block/set?id=' + l.id + '&v=' + (b ? 'on' : 'off'), '', function(err, j){ if (err || !j || !j.lists) { toast('Could not change that'); } else { self.data = j; toast('Now blocking ' + num(j.blocked) + ' names'); } if (settingsOn) renderCat(false); }, 90000); }));
+      var sub = l.desc + '  (' + num(l.count) + ' adresses' + (l.kind === 'remote' ? (l.stamp ? ', mise à jour ' + fmtDate2(l.stamp) : ', pas encore téléchargée') : '') + ')';
+      out.push(tgl(l.name, sub, function(){ return l.on; }, function(b){ l.on = b; toast(b ? 'Activation : ' + l.name + '…' : 'Désactivation : ' + l.name + '…');
+        apiPost('/api/block/set?id=' + l.id + '&v=' + (b ? 'on' : 'off'), '', function(err, j){ if (err || !j || !j.lists) { toast('Impossible de modifier ce réglage'); } else { self.data = j; toast('Bloquées maintenant : ' + num(j.blocked) + ' adresses'); } if (settingsOn) renderCat(false); }, 90000); }));
     });
-    out.push(head('Maintenance'));
-    out.push(act('Update the downloaded lists now', 'The TV also refreshes them by itself every week. Takes about half a minute.', function(){ apiPost('/api/block/update', '', function(){ toast('Updating the lists…'); setTimeout(function(){ if (settingsOn && cats[catIdx].id === 'block') renderCat(true); }, 30000); }); }));
-    out.push(head('Your own lists'));
-    out.push(inf('Names you blocked yourself', num(d.custom || 0), 'Add or remove names from your phone: Photo gallery, Add photos from your phone, then scroll to Ad blocking.'));
-    out.push(inf('Names you always allow', num(d.allowCustom || 0), 'A name on this list is never blocked, even if a list asks for it. Use it if an app stops working.'));
+    out.push(head('Entretien'));
+    out.push(act('Mettre à jour les listes téléchargées', 'La TV les met aussi à jour toute seule chaque semaine. Environ 30 secondes.', function(){ apiPost('/api/block/update', '', function(){ toast('Mise à jour des listes…'); setTimeout(function(){ if (settingsOn && cats[catIdx].id === 'block') renderCat(true); }, 30000); }); }));
+    out.push(head('Tes propres listes'));
+    out.push(inf('Adresses que tu as bloquées', num(d.custom || 0), 'Ajoute ou retire des adresses depuis ton téléphone : Galerie photo, Ajouter des photos depuis ton téléphone, puis descends jusqu’à Blocage des pubs.'));
+    out.push(inf('Adresses toujours autorisées', num(d.allowCustom || 0), 'Une adresse de cette liste n’est jamais bloquée, même si une liste le demande. Utile si une app ne fonctionne plus.'));
     return out; }},
-  {id: 'services', name: 'Services & privacy', icon: 'shield', title: 'Services & privacy', desc: 'Turn LG’s background services on or off. Everything here is reversible and re-applied after every restart.', info: '/api/svc', build: function(){
+  {id: 'services', name: 'Services et confidentialité', icon: 'shield', title: 'Services et confidentialité', desc: 'Active ou coupe les services de LG en arrière-plan. Tout est réversible et réappliqué à chaque redémarrage.', info: '/api/svc', build: function(){
     var self = this, list = this.data instanceof Array ? this.data : [], out = [], g = '';
     list.forEach(function(s){
       if (s.group !== g) { g = s.group; out.push(head(g)); }
-      if (s.locked) { out.push(inf(s.name, 'Always on', s.desc)); return; }
-      out.push(tgl(s.name, s.desc, function(){ return s.on; }, function(b){ s.on = b; toast((b ? 'Turning on: ' : 'Turning off: ') + s.name + '…');
-        apiPost('/api/svc/set?id=' + s.id + '&v=' + (b ? 'on' : 'off'), '', function(err, j){ if (err || !(j instanceof Array)) { toast('Could not change that'); return; } self.data = j; toast('Done'); if (settingsOn) renderCat(false); }, 60000); }));
+      if (s.locked) { out.push(inf(s.name, 'Toujours activé', s.desc)); return; }
+      out.push(tgl(s.name, s.desc, function(){ return s.on; }, function(b){ s.on = b; toast((b ? 'Activation : ' : 'Désactivation : ') + s.name + '…');
+        apiPost('/api/svc/set?id=' + s.id + '&v=' + (b ? 'on' : 'off'), '', function(err, j){ if (err || !(j instanceof Array)) { toast('Impossible de modifier ce réglage'); return; } self.data = j; toast('Fait'); if (settingsOn) renderCat(false); }, 60000); }));
     });
     if (!list.length) out.push(inf('Services', 'unavailable'));
     return out; }},
-  {id: 'swupd', name: 'Software updates', icon: 'update', title: 'Software updates', desc: 'Keeps this Home screen and the cleanup current from the project on GitHub. Every install makes a safety copy first, and if the new version does not start the old one comes back by itself.', info: '/api/update', build: function(){
+  {id: 'swupd', name: 'Mises à jour du logiciel', icon: 'update', title: 'Mises à jour du logiciel', desc: 'Garde cet accueil et le nettoyage à jour depuis le projet sur GitHub. Chaque installation fait d’abord une copie de sécurité ; si la nouvelle version ne démarre pas, l’ancienne revient toute seule.', info: '/api/update', build: function(){
     var self = this, j = this.data || {}, av = j.available, rows = [];
     function again(ms){ setTimeout(function(){ if (settingsOn && cats[catIdx].id === 'swupd') renderCat(true); }, ms); }
     function watch(n){ if (n <= 0) return; setTimeout(function(){ if (!(settingsOn && cats[catIdx].id === 'swupd')) return; api('/api/update', function(err, d){ if (d) { self.data = d; renderCat(false); } watch(n - 1); }, 5000); }, 4000); }
-    if (j.busy) rows.push(inf('Working on it', j.status || '…', 'Home restarts for a few seconds when the new version is in.'));
-    if (j.resultKind) rows.push(inf(j.resultKind === 'ok' ? 'Last update' : 'Last update did not work', j.result || '', 'Choose “Dismiss” below to clear this message.'));
+    if (j.busy) rows.push(inf('En cours', j.status || '…', 'L’accueil redémarre quelques secondes une fois la nouvelle version installée.'));
+    if (j.resultKind) rows.push(inf(j.resultKind === 'ok' ? 'Dernière mise à jour' : 'La dernière mise à jour a échoué', j.result || '', 'Choisis « Effacer » plus bas pour retirer ce message.'));
     rows.push(head('Version'));
-    rows.push(inf('Installed', j.installed || '–'));
-    rows.push(inf('Newest on GitHub', av ? av + '    ·  update available' : (j.error ? 'could not check' : 'you have the newest'), j.error || ''));
-    rows.push(inf('Last check', function(){ var a = j.lastAgoSec; return a === null || a === undefined ? 'not since the TV started' : a < 90 ? 'just now' : a < 5400 ? Math.round(a / 60) + ' min ago' : a < 172800 ? Math.round(a / 3600) + ' h ago' : Math.round(a / 86400) + ' days ago'; }));
-    if (av) rows.push(act('Install ' + av + ' now', 'Downloads it, makes a safety copy, installs it and restarts Home (about 20 seconds). If anything goes wrong the old version is put back.', function(){ if (j.busy) return; toast('Installing ' + av + '…'); api('/api/update/apply', function(err){ if (err) { toast('Could not start the update'); return; } j.busy = true; j.status = 'starting'; renderCat(false); watch(15); }, 8000); }));
-    rows.push(act('Check for updates now', 'Looks at GitHub right away', function(){ toast('Checking…'); api('/api/update/check', function(err, r){ toast((r && r.msg) || 'Could not reach the TV'); again(800); }, 50000); }));
-    if (j.resultKind) rows.push(act('Dismiss', 'Clears the message above', function(){ api('/api/update/conf?k=ack&v=1', function(){ again(300); }); }));
-    rows.push(head('Automatic checks'));
-    rows.push(chc('When an update is found', 'Tell me: a note appears on Home and you choose when to install. Install by itself: it waits for a quiet moment (screensaver on) and installs. Never: no automatic look at GitHub.', [['notify', 'Tell me'], ['auto', 'Install by itself'], ['off', 'Never check']], function(){ return self.data && self.data.mode || 'notify'; }, function(v){ self.data = self.data || {}; self.data.mode = v; api('/api/update/conf?k=mode&v=' + v, noop); }));
-    rows.push(tgl('Check when the TV starts', 'A quiet look at GitHub two minutes after Home is up.', function(){ return (self.data && self.data.startup) !== 'off'; }, function(b){ self.data = self.data || {}; self.data.startup = b ? 'on' : 'off'; api('/api/update/conf?k=startup&v=' + (b ? 'on' : 'off'), noop); }));
-    rows.push(chc('Then check every', 'While the TV stays on or in Quick Start standby', [[6, '6 hours'], [12, '12 hours'], [24, '1 day'], [72, '3 days'], [168, '1 week']], function(){ return self.data && self.data.every !== undefined ? Number(self.data.every) : 12; }, function(v){ self.data = self.data || {}; self.data.every = v; api('/api/update/conf?k=every&v=' + v, noop); }));
+    rows.push(inf('Installée', j.installed || '–'));
+    rows.push(inf('La plus récente sur GitHub', av ? av + '    ·  mise à jour disponible' : (j.error ? 'vérification impossible' : 'tu as la plus récente'), j.error || ''));
+    rows.push(inf('Dernière vérification', function(){ var a = j.lastAgoSec; return a === null || a === undefined ? 'pas depuis l’allumage de la TV' : a < 90 ? 'à l’instant' : a < 5400 ? Math.round(a / 60) + ' min' : a < 172800 ? Math.round(a / 3600) + ' h' : Math.round(a / 86400) + ' jours'; }));
+    if (av) rows.push(act('Installer ' + av + ' maintenant', 'La télécharge, fait une copie de sécurité, l’installe et redémarre l’accueil (environ 20 secondes). En cas de problème, l’ancienne version est remise.', function(){ if (j.busy) return; toast('Installation de ' + av + '…'); api('/api/update/apply', function(err){ if (err) { toast('Impossible de lancer la mise à jour'); return; } j.busy = true; j.status = 'starting'; renderCat(false); watch(15); }, 8000); }));
+    rows.push(act('Rechercher des mises à jour', 'Regarde sur GitHub tout de suite', function(){ toast('Vérification…'); api('/api/update/check', function(err, r){ toast((r && r.msg) || 'Impossible de joindre la TV'); again(800); }, 50000); }));
+    if (j.resultKind) rows.push(act('Effacer', 'Retire le message ci-dessus', function(){ api('/api/update/conf?k=ack&v=1', function(){ again(300); }); }));
+    rows.push(head('Vérifications automatiques'));
+    rows.push(chc('Quand une mise à jour est trouvée', 'Me prévenir : un message apparaît sur l’accueil et tu choisis quand installer. Installer toute seule : elle attend un moment calme (pendant la veille) et s’installe. Jamais : aucune vérification automatique.', [['notify', 'Me prévenir'], ['auto', 'Installer toute seule'], ['off', 'Ne jamais vérifier']], function(){ return self.data && self.data.mode || 'notify'; }, function(v){ self.data = self.data || {}; self.data.mode = v; api('/api/update/conf?k=mode&v=' + v, noop); }));
+    rows.push(tgl('Vérifier à l’allumage', 'Une vérification discrète sur GitHub deux minutes après l’affichage de l’accueil.', function(){ return (self.data && self.data.startup) !== 'off'; }, function(b){ self.data = self.data || {}; self.data.startup = b ? 'on' : 'off'; api('/api/update/conf?k=startup&v=' + (b ? 'on' : 'off'), noop); }));
+    rows.push(chc('Puis vérifier toutes les', 'Tant que la TV reste allumée ou en veille rapide', [[6, '6 heures'], [12, '12 heures'], [24, '1 jour'], [72, '3 jours'], [168, '1 semaine']], function(){ return self.data && self.data.every !== undefined ? Number(self.data.every) : 12; }, function(v){ self.data = self.data || {}; self.data.every = v; api('/api/update/conf?k=every&v=' + v, noop); }));
     var ns = j.notes instanceof Array ? j.notes : [], shown = [];
     function vnew(a, b){ var x = String(a).split('.'), y = String(b).split('.'), i, p, q; for (i = 0; i < Math.max(x.length, y.length); i++) { p = parseInt(x[i], 10) || 0; q = parseInt(y[i], 10) || 0; if (q !== p) return q > p; } return false; }
     ns.forEach(function(e){ if (e && e.v && (av ? vnew(j.installed, e.v) : shown.length < 5)) shown.push(e); });
-    rows.push(head(av ? 'What is new in ' + av : 'Recent changes'));
+    rows.push(head(av ? 'Nouveautés de la ' + av : 'Changements récents'));
     shown.forEach(function(e){ rows.push(inf(e.v + '    ' + (e.title || ''), e.date || '', (e.notes instanceof Array ? e.notes.join('   •   ') : ''))); });
-    if (!shown.length) rows.push(inf('Change notes', 'none yet'));
-    if (j.hasBackup) { rows.push(head('If something is wrong')); rows.push(act('Go back to the previous version', 'Puts the safety copy from before the last update back and restarts Home.', function(){ toast('Going back…'); api('/api/update/rollback', function(){ watch(15); }, 8000); })); }
-    rows.push(inf('Source', (j.repo || '') + '  (' + (j.branch || '') + ')', 'Only the TV’s own code is replaced. Your photos, settings and the block lists you made are never touched. LG firmware updates stay blocked.'));
+    if (!shown.length) rows.push(inf('Notes de version', 'aucune pour l’instant'));
+    if (j.hasBackup) { rows.push(head('En cas de problème')); rows.push(act('Revenir à la version précédente', 'Remet la copie de sécurité d’avant la dernière mise à jour et redémarre l’accueil.', function(){ toast('Retour en arrière…'); api('/api/update/rollback', function(){ watch(15); }, 8000); })); }
+    rows.push(inf('Source', (j.repo || '') + '  (' + (j.branch || '') + ')', 'Seul le code de la TV est remplacé. Tes photos, tes réglages et tes listes de blocage ne sont jamais touchés. Les mises à jour du firmware LG restent bloquées.'));
     return rows; }},
-  {id: 'appupd', name: 'App updates', icon: 'update', title: 'App updates', desc: 'The TV updates your apps by itself, so LG never asks “update this app?” before opening one. TV system (firmware) updates are blocked for good.', info: '/api/appupdates', build: function(){
+  {id: 'appupd', name: 'Mises à jour des apps', icon: 'update', title: 'Mises à jour des apps', desc: 'La TV met à jour tes apps toute seule : LG ne demande plus « mettre à jour cette app ? » à l’ouverture. Les mises à jour du système (firmware) restent bloquées.', info: '/api/appupdates', build: function(){
     var self = this, j = this.data || {}, apps = j.apps || [], pend = (j.pending || []).length;
     var rows = [
-    tgl('Update apps automatically', 'On: the TV downloads and installs app updates in the background. Off: LG asks before it opens an app that has an update.', function(){ return (self.data && self.data.mode) !== 'manual'; }, function(b){ self.data = self.data || {}; self.data.mode = b ? 'auto' : 'manual'; api('/api/appupdates/mode?v=' + (b ? 'auto' : 'manual'), function(){ toast(b ? 'Apps now update automatically' : 'LG will ask before updating apps'); }); }),
-    tgl('Check when the TV starts', 'A quiet check in the background 30 seconds after the launcher is up, so updates are done before you notice.', function(){ return (self.data && self.data.startup) !== 'off'; }, function(b){ self.data = self.data || {}; self.data.startup = b ? 'on' : 'off'; api('/api/appupdates/conf?k=startup&v=' + (b ? 'on' : 'off'), noop); }),
-    chc('Then check every', 'While the TV stays on or in Quick Start standby', [[0, 'Never'], [1, '1 hour'], [3, '3 hours'], [6, '6 hours'], [12, '12 hours'], [24, '24 hours']], function(){ return self.data && self.data.every !== undefined ? self.data.every : 6; }, function(v){ self.data = self.data || {}; self.data.every = v; api('/api/appupdates/conf?k=every&v=' + v, noop); }),
-    inf('Flagged by LG', pend ? pend + (pend === 1 ? ' app' : ' apps') : 'none', 'Apps LG’s updater lists for an update. The TV installs them itself when automatic updates are on.'),
-    inf('Last check', function(){ var a = j.lastCheckAgoSec; return a === null || a === undefined ? 'since the last restart: not yet' : a < 90 ? 'just now' : a < 5400 ? Math.round(a / 60) + ' min ago' : Math.round(a / 3600) + ' h ago'; }),
-    act('Check for app updates now', 'Asks the TV to look right away', function(){ api('/api/appupdates/check', function(err, r){ toast((r && r.msg) || 'Could not reach the TV'); setTimeout(function(){ if (settingsOn && cats[catIdx].id === 'appupd') renderCat(true); }, 10000); }, 30000); }),
-    inf('TV system updates', 'Blocked', 'Firmware updates are switched off and re-checked every 5 minutes. They cannot be turned on from here.'),
-    head('Installed apps (' + apps.length + ')')];
-    apps.forEach(function(a){ rows.push(inf(a.title, a.version + (a.pending ? '    ·  update waiting' : ''))); });
+    tgl('Mettre à jour les apps automatiquement', 'Activé : la TV télécharge et installe les mises à jour des apps en arrière-plan. Désactivé : LG demande avant d’ouvrir une app qui a une mise à jour.', function(){ return (self.data && self.data.mode) !== 'manual'; }, function(b){ self.data = self.data || {}; self.data.mode = b ? 'auto' : 'manual'; api('/api/appupdates/mode?v=' + (b ? 'auto' : 'manual'), function(){ toast(b ? 'Les apps se mettent maintenant à jour toutes seules' : 'LG demandera avant de mettre à jour les apps'); }); }),
+    tgl('Vérifier à l’allumage', 'Une vérification discrète 30 secondes après l’affichage de l’accueil : les mises à jour sont faites avant que tu le remarques.', function(){ return (self.data && self.data.startup) !== 'off'; }, function(b){ self.data = self.data || {}; self.data.startup = b ? 'on' : 'off'; api('/api/appupdates/conf?k=startup&v=' + (b ? 'on' : 'off'), noop); }),
+    chc('Puis vérifier toutes les', 'Tant que la TV reste allumée ou en veille rapide', [[0, 'Jamais'], [1, '1 heure'], [3, '3 heures'], [6, '6 heures'], [12, '12 heures'], [24, '24 heures']], function(){ return self.data && self.data.every !== undefined ? self.data.every : 6; }, function(v){ self.data = self.data || {}; self.data.every = v; api('/api/appupdates/conf?k=every&v=' + v, noop); }),
+    inf('Signalées par LG', pend ? pend + (pend === 1 ? ' app' : ' apps') : 'none', 'Les apps que LG signale pour une mise à jour. La TV les installe elle-même si les mises à jour automatiques sont activées.'),
+    inf('Dernière vérification', function(){ var a = j.lastCheckAgoSec; return a === null || a === undefined ? 'depuis le dernier redémarrage : pas encore' : a < 90 ? 'à l’instant' : a < 5400 ? Math.round(a / 60) + ' min' : Math.round(a / 3600) + ' h'; }),
+    act('Rechercher des mises à jour d’apps', 'Demande à la TV de vérifier tout de suite', function(){ api('/api/appupdates/check', function(err, r){ toast((r && r.msg) || 'Impossible de joindre la TV'); setTimeout(function(){ if (settingsOn && cats[catIdx].id === 'appupd') renderCat(true); }, 10000); }, 30000); }),
+    inf('Mises à jour du système', 'Bloquées', 'Les mises à jour du firmware sont coupées et revérifiées toutes les 5 minutes. Elles ne peuvent pas être activées d’ici.'),
+    head('Apps installées (' + apps.length + ')')];
+    apps.forEach(function(a){ rows.push(inf(a.title, a.version + (a.pending ? '    ·  mise à jour en attente' : ''))); });
     return rows; }},
-  {id: 'about', name: 'About & updates', icon: 'info', title: 'About & updates', desc: '', info: '/api/sysinfo', lg: [['support', ['automaticUpdate']], ['option', ['appUpdateMode']]], build: function(){ var self = this, j = this.data || {}, lg = j.lg || {}, m = j.mem || {};
+  {id: 'about', name: 'À propos et mises à jour', icon: 'info', title: 'À propos et mises à jour', desc: '', info: '/api/sysinfo', lg: [['support', ['automaticUpdate']], ['option', ['appUpdateMode']]], build: function(){ var self = this, j = this.data || {}, lg = j.lg || {}, m = j.mem || {};
     if (!self.askedHealth) { self.askedHealth = true; api('/api/health', function(e1, h){ if (h) { self.health = h; if (settingsOn && cats[catIdx].id === 'about') renderCat(false); } }, 20000); api('/api/caps', function(e2, c){ if (c) { self.caps = c; if (settingsOn && cats[catIdx].id === 'about') renderCat(false); } }, 20000); }
     return [
-    inf('Model', function(){ return lg.modelName || '–'; }), inf('Firmware', function(){ return lg.firmwareVersion || '–'; }), inf('webOS SDK', function(){ return lg.sdkVersion || '–'; }),
-    inf('Memory free', function(){ return (m.availMB || 0) + ' of ' + (m.totalMB || 0) + ' MB'; }), inf('Swap in use', function(){ return (m.swapUsedMB || 0) + ' MB'; }),
-    inf('Running for', function(){ var s = j.uptime || 0, h = Math.floor(s / 3600), mi = Math.floor((s % 3600) / 60); return h + ' h ' + mi + ' min'; }), inf('Processes', function(){ return String(j.procs || '–'); }),
-    head('Self-check'),
-    inf('Everything in force', function(){ var h = self.health; if (!h) return 'checking…'; return h.fail ? h.fail + ' problem' + (h.fail > 1 ? 's' : '') : h.warn ? 'all fine, ' + h.warn + ' note' + (h.warn > 1 ? 's' : '') : 'all ' + h.pass + ' checks pass'; }, function(){ var h = self.health; if (!h) return ''; var bad = (h.checks || []).filter(function(c){ return c.s !== 'ok'; }).map(function(c){ return c.n + ': ' + c.m; }); return bad.length ? bad.join('   •   ') : 'Mounts, watchers, ad blocking, update lock and SSH were all checked a moment ago.'; }),
-    inf('This TV supports', function(){ var c = self.caps; if (!c) return 'checking…'; var k = Object.keys(c).filter(function(x){ return x.indexOf('feature_') === 0; }), n = k.filter(function(x){ return c[x] === 'yes'; }).length; return n + ' of ' + k.length + ' features'; }, function(){ var c = self.caps; if (!c) return ''; var no = Object.keys(c).filter(function(x){ return x.indexOf('feature_') === 0 && c[x] !== 'yes'; }).map(function(x){ return x.slice(8).replace(/_/g, ' ') + ' (' + c[x] + ')'; }); return (c.webos_release || '') + (c.arch ? ', ' + c.arch : '') + (c.ram_mb ? ', ' + c.ram_mb + ' MB' : '') + (no.length ? '.   Not available here: ' + no.join(', ') : '.   Every feature is available on this TV.'); }),
-    head('Memory guard'),
-    inf('Guard', function(){ var g = j.guard || {}; return !g.running ? 'off' : g.level === 'ok' ? 'watching, all fine' : g.level === 'low' ? 'LOW: closing idle apps' : 'CRITICAL: Home photos dropped'; }, 'Checks free memory and swapping every 10 seconds and steps in before the TV slows down. Switch in Services & privacy.'),
-    inf('Lowest free memory since start', function(){ var g = j.guard || {}; return g.minAvailMB === null || g.minAvailMB === undefined ? '–' : g.minAvailMB + ' MB'; }),
-    inf('Most swap used since start', function(){ var g = j.guard || {}; return g.maxSwapMB === null || g.maxSwapMB === undefined ? '–' : g.maxSwapMB + ' of ' + (g.swapTotalMB || 0) + ' MB'; }),
-    inf('Times it had to step in', function(){ var g = j.guard || {}; return (g.lowEpisodes || 0) + ' low, ' + (g.criticalEpisodes || 0) + ' critical'; }, function(){ var g = j.guard || {}; return g.lastAction ? 'Last: ' + g.lastAction : 'It has not needed to act since the TV started.'; }),
-    chc('Memory profile', 'How strict the guard is. Automatic picks from the TV’s memory (under 800 MB = Weak: no Home photos at all).', [['auto', 'Automatic'], ['roomy', 'Roomy'], ['standard', 'Standard'], ['weak', 'Weak']], function(){ return (j.guard && j.guard.setting) || 'auto'; }, function(v){ j.guard = j.guard || {}; j.guard.setting = v; api('/api/mem/conf?v=' + v, function(){ toast('Profile: ' + v); }); }),
-    head('Updates are blocked on purpose'),
-    inf('Automatic system updates', function(){ return (LGC.support || {}).automaticUpdate === 'off' ? 'Off (locked)' : 'ON - will be switched off shortly'; }, 'A firmware update could remove root access and bring LG’s ads back, so this stays off and the update servers are blocked.'),
-    inf('Automatic app updates', function(){ return (LGC.option || {}).appUpdateMode === 'manual' ? 'Manual (locked)' : 'Automatic - will be switched off shortly'; }),
-    inf('Home', function(){ return 'tv-debloat launcher'; }, 'Undo everything: run revert.sh from the PC, or remove /var/lib/webosbrew/init.d/zz-debloat and reboot.')
+    inf('Modèle', function(){ return lg.modelName || '–'; }), inf('Firmware', function(){ return lg.firmwareVersion || '–'; }), inf('webOS SDK', function(){ return lg.sdkVersion || '–'; }),
+    inf('Mémoire libre', function(){ return (m.availMB || 0) + ' sur ' + (m.totalMB || 0) + ' Mo'; }), inf('Swap utilisé', function(){ return (m.swapUsedMB || 0) + ' Mo'; }),
+    inf('Allumée depuis', function(){ var s = j.uptime || 0, h = Math.floor(s / 3600), mi = Math.floor((s % 3600) / 60); return h + ' h ' + mi + ' min'; }), inf('Processus', function(){ return String(j.procs || '–'); }),
+    head('Autocontrôle'),
+    inf('Tout est en place', function(){ var h = self.health; if (!h) return 'checking…'; return h.fail ? h.fail + ' problème' + (h.fail > 1 ? 's' : '') : h.warn ? 'tout va bien, ' + h.warn + ' remarque' + (h.warn > 1 ? 's' : '') : 'les ' + h.pass + ' contrôles sont bons'; }, function(){ var h = self.health; if (!h) return ''; var bad = (h.checks || []).filter(function(c){ return c.s !== 'ok'; }).map(function(c){ return c.n + ': ' + c.m; }); return bad.length ? bad.join('   •   ') : 'Montages, surveillances, blocage des pubs, verrou des mises à jour et SSH viennent d’être vérifiés.'; }),
+    inf('Cette TV prend en charge', function(){ var c = self.caps; if (!c) return 'checking…'; var k = Object.keys(c).filter(function(x){ return x.indexOf('feature_') === 0; }), n = k.filter(function(x){ return c[x] === 'yes'; }).length; return n + ' sur ' + k.length + ' fonctions'; }, function(){ var c = self.caps; if (!c) return ''; var no = Object.keys(c).filter(function(x){ return x.indexOf('feature_') === 0 && c[x] !== 'yes'; }).map(function(x){ return x.slice(8).replace(/_/g, ' ') + ' (' + c[x] + ')'; }); return (c.webos_release || '') + (c.arch ? ', ' + c.arch : '') + (c.ram_mb ? ', ' + c.ram_mb + ' Mo' : '') + (no.length ? '.   Not available here: ' + no.join(', ') : '.   Every feature is available on this TV.'); }),
+    head('Garde mémoire'),
+    inf('Garde', function(){ var g = j.guard || {}; return !g.running ? 'off' : g.level === 'ok' ? 'en surveillance, tout va bien' : g.level === 'low' ? 'BAS : fermeture des apps inutilisées' : 'CRITIQUE : photos de l’accueil retirées'; }, 'Vérifie la mémoire libre et le swap toutes les 10 secondes et intervient avant que la TV ralentisse. Interrupteur dans Services et confidentialité.'),
+    inf('Mémoire libre la plus basse depuis l’allumage', function(){ var g = j.guard || {}; return g.minAvailMB === null || g.minAvailMB === undefined ? '–' : g.minAvailMB + ' Mo'; }),
+    inf('Swap maximal depuis l’allumage', function(){ var g = j.guard || {}; return g.maxSwapMB === null || g.maxSwapMB === undefined ? '–' : g.maxSwapMB + ' sur ' + (g.swapTotalMB || 0) + ' Mo'; }),
+    inf('Nombre d’interventions', function(){ var g = j.guard || {}; return (g.lowEpisodes || 0) + ' bas, ' + (g.criticalEpisodes || 0) + ' critique'; }, function(){ var g = j.guard || {}; return g.lastAction ? 'Dernière : ' + g.lastAction : 'Aucune intervention depuis l’allumage de la TV.'; }),
+    chc('Profil mémoire', 'Sévérité de la garde. Automatique choisit selon la mémoire de la TV (moins de 800 Mo = Faible : aucune photo sur l’accueil).', [['auto', 'Automatique'], ['roomy', 'Large'], ['standard', 'Standard'], ['weak', 'Faible']], function(){ return (j.guard && j.guard.setting) || 'auto'; }, function(v){ j.guard = j.guard || {}; j.guard.setting = v; api('/api/mem/conf?v=' + v, function(){ toast('Profil : ' + v); }); }),
+    head('Les mises à jour sont bloquées exprès'),
+    inf('Mises à jour automatiques du système', function(){ return (LGC.support || {}).automaticUpdate === 'off' ? 'Désactivées (verrouillé)' : 'ACTIVÉES – vont être coupées'; }, 'Une mise à jour du firmware pourrait retirer l’accès root et ramener les pubs de LG : c’est donc coupé et les serveurs de mise à jour sont bloqués.'),
+    inf('Mises à jour automatiques des apps', function(){ return (LGC.option || {}).appUpdateMode === 'manual' ? 'Manuelles (verrouillé)' : 'Automatiques – vont être coupées'; }),
+    inf('Accueil', function(){ return 'tv-debloat launcher'; }, 'Tout annuler : lance revert.sh depuis le PC, ou supprime /var/lib/webosbrew/init.d/zz-debloat et redémarre.')
   ]; }},
-  {id: 'lgall', name: 'LG Settings (legacy)', icon: 'grid', title: 'LG Settings (legacy)', desc: 'Almost everything is in this screen now. LG’s own Settings app is still there for Wi-Fi setup, accounts, channel tuning and the rest.', build: function(){ return [
-    act('Open LG Settings', 'LG’s own full Settings app', function(){ launch('com.palm.app.settings'); })
+  {id: 'lgall', name: 'Réglages LG (ancien)', icon: 'grid', title: 'Réglages LG (ancien)', desc: 'Presque tout est dans cet écran. L’application Réglages de LG reste là pour le Wi-Fi, les comptes, la recherche des chaînes et le reste.', build: function(){ return [
+    act('Ouvrir les Réglages LG', 'L’application Réglages complète de LG', function(){ launch('com.palm.app.settings'); })
   ]; }}
 ];
 
@@ -816,7 +833,7 @@ function renderCat(reload){
     if (sArea === 'pane') sFocus(Math.min(sR, sRows.length - 1), sC, true);
   }
   if (reload !== false && (c.lg || c.info)) {
-    $('settitle').textContent = c.title; $('setdesc').textContent = 'Loading…'; $('setrows').innerHTML = ''; sRows = [];
+    $('settitle').textContent = c.title; $('setdesc').textContent = 'Chargement…'; $('setrows').innerHTML = ''; sRows = [];
     var tok = ++renderCat.tok;
     var done = function(){ if (tok === renderCat.tok && settingsOn) draw(); };
     var step2 = function(){ if (c.info) api(c.info, function(err, j){ c.data = j || {}; done(); }, 20000); else done(); };
@@ -848,7 +865,7 @@ function thumbCell(n){
 function renderThumbs(box){
   var g = el('div', 'gthumbs'); box.appendChild(g);
   photos.forEach(function(n){ g.appendChild(thumbCell(n)); });
-  if (!photos.length) { var e = el('div', 'srow', 'No photos yet. Choose “Add photos from your phone”.'); g.appendChild(e); }
+  if (!photos.length) { var e = el('div', 'srow', 'Pas encore de photos. Choisis « Ajouter des photos depuis ton téléphone ».'); g.appendChild(e); }
   g._isThumbs = true;
 }
 function regroupThumbs(){
@@ -920,11 +937,11 @@ function settingsKey(k, e){
 }
 function thumbMenu(name){
   panelOpen('Photo', [
-    ['Adjust framing', 'move / zoom, see Home on top', function(){ panelClose(); edOpen(name); }],
-    ['Use as Home background now', '', function(){ panelClose(); var i = photos.indexOf(name); if (i >= 0 && !SETMODE) { S.bg.on = true; saveSettings(); bgShow(i); toast('Background changed'); } else toast('Close Settings to see it'); }],
-    ['Delete this photo', '', function(){ panelOpen('Delete this photo?', [['Yes, delete', '', function(){ panelClose();
-        api('/api/delete?name=' + encodeURIComponent(name), function(err){ if (err) return toast('Could not delete'); photos = photos.filter(function(n){ return n !== name; }); delete crops[name]; if (bgIx >= photos.length) bgIx = 0; renderCat(false); toast('Photo deleted'); if (!photos.length && !SETMODE) bgApply(true); }); }], ['Cancel', '', panelClose]]); }],
-    ['Cancel', '', panelClose]]);
+    ['Ajuster le cadrage', 'déplacer / zoomer, avec l’accueil par-dessus', function(){ panelClose(); edOpen(name); }],
+    ['Mettre en fond de l’accueil', '', function(){ panelClose(); var i = photos.indexOf(name); if (i >= 0 && !SETMODE) { S.bg.on = true; saveSettings(); bgShow(i); toast('Fond modifié'); } else toast('Ferme les Réglages pour le voir'); }],
+    ['Supprimer cette photo', '', function(){ panelOpen('Supprimer cette photo ?', [['Oui, supprimer', '', function(){ panelClose();
+        api('/api/delete?name=' + encodeURIComponent(name), function(err){ if (err) return toast('Suppression impossible'); photos = photos.filter(function(n){ return n !== name; }); delete crops[name]; if (bgIx >= photos.length) bgIx = 0; renderCat(false); toast('Photo supprimée'); if (!photos.length && !SETMODE) bgApply(true); }); }], ['Annuler', '', panelClose]]); }],
+    ['Annuler', '', panelClose]]);
 }
 
 /* ================= photo framing editor (TV remote) ================= */
@@ -944,7 +961,7 @@ function edOpen(name){
   var c0 = crops[name] || null;
   ed = {name: name, c: Stage.norm(c0 && c0.x !== undefined ? c0 : Stage.auto(c0)), orig: c0, mode: 'move', ghost: true, im: null, nw: 0, nh: 0, st: null};
   ed.c.a = c0 && c0.a; ed.c.e = c0 && c0.e;
-  $('edstage').innerHTML = ''; $('edinfo').textContent = 'Loading…'; $('editor').className = 'on'; mpush('editor'); edMode();
+  $('edstage').innerHTML = ''; $('edinfo').textContent = 'Chargement…'; $('editor').className = 'on'; mpush('editor'); edMode();
   ghostBuild(function(){ cls($('ghost'), 'on', ed && ed.ghost); });
   var im = new Image(); if (!MOCK) im.crossOrigin = 'anonymous';
   im.onload = function(){
@@ -954,14 +971,14 @@ function edOpen(name){
     if (!ed.c.e && !MOCK) { var e0 = Stage.sample(im, 5); if (e0) ed.c.e = e0; }      // measured now so the edge fade is visible while you move the photo
     edRender();
   };
-  im.onerror = function(){ toast('Could not load the photo'); edClose(); };
+  im.onerror = function(){ toast('Impossible de charger la photo'); edClose(); };
   im.src = httpPhotoUrl(name);
 }
-function edMode(){ $('edmode').textContent = ed && ed.mode === 'zoom' ? 'Zoom: ▲ in  ▼ out' : 'Move'; }
+function edMode(){ $('edmode').textContent = ed && ed.mode === 'zoom' ? 'Zoom : ▲ avant  ▼ arrière' : 'Déplacer'; }
 function edRender(){
   if (!ed || !ed.st) return;
   Stage.place(ed.st, ed.nw, ed.nh, ed.c);
-  $('edinfo').textContent = 'Zoom ' + ed.c.z.toFixed(2) + '×   ·   ' + Math.round(ed.c.x * 100) + '% across, ' + Math.round(ed.c.y * 100) + '% down';
+  $('edinfo').textContent = 'Zoom ' + ed.c.z.toFixed(2) + '×   ·   ' + Math.round(ed.c.x * 100) + ' % horizontal, ' + Math.round(ed.c.y * 100) + ' % vertical';
 }
 function edKey(k){
   if (k === 461 || k === 27 || k === 8) { edMenu(); return; }
@@ -974,19 +991,19 @@ function edKey(k){
   edRender();
 }
 function edMenu(){
-  panelOpen('Photo framing', [
-    ['Save', '', function(){ panelClose(); edSave(); }],
-    ['Keep editing', '', panelClose],
-    ['Home overlay', ed.ghost ? 'showing' : 'hidden', function(){ ed.ghost = !ed.ghost; cls($('ghost'), 'on', ed.ghost); panelClose(); }],
-    ['Reset to automatic', '', function(){ var a = Stage.auto(ed.c); ed.c.x = a.x; ed.c.y = a.y; ed.c.z = 1; delete ed.c.e; panelClose(); edRender(); }],
-    ['Discard changes', '', function(){ panelClose(); edClose(); }]]);
+  panelOpen('Cadrage de la photo', [
+    ['Enregistrer', '', function(){ panelClose(); edSave(); }],
+    ['Continuer', '', panelClose],
+    ['Accueil par-dessus', ed.ghost ? 'showing' : 'hidden', function(){ ed.ghost = !ed.ghost; cls($('ghost'), 'on', ed.ghost); panelClose(); }],
+    ['Revenir au cadrage automatique', '', function(){ var a = Stage.auto(ed.c); ed.c.x = a.x; ed.c.y = a.y; ed.c.z = 1; delete ed.c.e; panelClose(); edRender(); }],
+    ['Annuler les modifications', '', function(){ panelClose(); edClose(); }]]);
 }
 function edSave(){
   var name = ed.name, c = {x: Math.round(ed.c.x * 1000) / 1000, y: Math.round(ed.c.y * 1000) / 1000, z: Math.round(ed.c.z * 1000) / 1000};
   if (ed.c.a) c.a = ed.c.a;
   var e = (!MOCK && ed.im) ? Stage.sample(ed.im, 5) : null; if (e) c.e = e; else if (ed.c.e) c.e = ed.c.e;
   crops[name] = c;
-  apiPost('/api/crop?name=' + encodeURIComponent(name), JSON.stringify(c), function(err){ toast(err ? 'Could not save the framing' : 'Framing saved'); });
+  apiPost('/api/crop?name=' + encodeURIComponent(name), JSON.stringify(c), function(err){ toast(err ? 'Impossible d’enregistrer le cadrage' : 'Cadrage enregistré'); });
   edClose();
   if (!SETMODE && photos[bgIx] === name) bgShow(bgIx);
   if (settingsOn) renderCat(false);
@@ -996,7 +1013,7 @@ function edClose(){ mpop('editor'); $('editor').className = ''; $('ghost').inner
 /* ================= input ================= */
 var KEYS = {37: 'L', 38: 'U', 39: 'R', 40: 'D'};
 // Back on Home returns to the app / input you were in before Home (the TV side remembers it: lastapp.sh)
-function goBack(){ api('/api/back', function(err, j){ if (err) return toast('Could not reach the TV'); if (!j || !j.back) toast('Nothing to go back to yet'); }); }
+function goBack(){ api('/api/back', function(err, j){ if (err) return toast('Impossible de joindre la TV'); if (!j || !j.back) toast('Rien à quoi revenir pour l’instant'); }); }
 function onKey(e){
   var k = e.keyCode, wasSaver = saverOn;
   activity();

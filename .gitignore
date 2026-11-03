@@ -24,3 +24,4 @@ package-lock.json
 tv.conf
 dist/
 !docs/images/*.png
+diagnostic-tv.txt
