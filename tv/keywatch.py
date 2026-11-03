@@ -1,6 +1,8 @@
 # keywatch.py - reports the remote's Back key, one word per line (flushed):
 #   BACK   every press of Back (Linux code 158 = the IR remote, 412 = the Magic Remote; found by recording the real remote)
-#   LEAVE  Back held for 0.8 s, or pressed twice within 1.2 s (what counts is chosen in state/back.conf: leave=both|hold|double|off, default both)
+#   LEAVE  Back pressed twice within 1.2 s   (go to the previous app)
+#   HOLD   Back held for 0.8 s               (quit the app and go Home)
+#   which of the two count is chosen in state/back.conf: leave=both|hold|double|off, default both
 # Read-only: it only reads /dev/input/event*, like the system does. It looks for the remote's devices ("LGE ...") every 3 s because the Magic Remote creates
 # new ones each time it reconnects. Python 2.7 (the only Python on the TV); 32-bit ARM struct input_event = 16 bytes.
 import os, select, struct, sys, time
@@ -87,7 +89,7 @@ while True:
                         down_at = n if m in ('both', 'hold') else None
                 elif v == 0:
                     down_at = None
-    if down_at is not None and time.time() - down_at >= 0.8:      # still held: leave
-        say('LEAVE')
+    if down_at is not None and time.time() - down_at >= 0.8:      # still held: quit the app
+        say('HOLD')
         down_at = None
         last_press = 0

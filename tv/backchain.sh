@@ -4,7 +4,9 @@
 #   BACK   the app gets the key first (Netflix ignores it on its start screen, YouTube steps back inside itself). If the app quits (foreground changes within 3 s), the TV lands where
 #          SAM put it (often the last input); we move it, within 0.1 s of the landing, to where you expect: the previous app of your history (lastapp.sh) or Home when there is none.
 #          While an app is still on its splash screen Back cancels the launch instead (lastapp.sh cancel: the loading app is closed, you are back where you started it).
-#   LEAVE  you want out, whatever the app does with Back: go to the previous app / Home at once (the app stays open in the background, like the Home key).
+#   LEAVE  (pressed twice) you want out, whatever the app does with Back: go to the previous app / Home at once (the app stays open in the background, like the Home key).
+#   HOLD   (held 0.8 s) quit: the app is closed for good (a stuck app restarts clean next time) and the TV goes to Home. /tmp/back-held (uptime) tells
+#          the BACK watcher and /api/back (Home's own Back) to stay quiet for 4 s, so the rest of the held key does not relaunch anything.
 # Home, our Settings and LG overlays are never touched. Options (Settings -> Remote & pointer): state/backchain-off = no previous-app landing (Home instead),
 # leave=both|hold|double|off in state/back.conf. RAM only; a reboot without the init hook is stock.
 . /media/developer/tv-debloat/common.sh
@@ -16,6 +18,7 @@ stop() {
 }
 fgid() { lun luna://com.webos.applicationManager/getForegroundAppInfo '{}' | sed -n 's/.*"appId" *: *"\([^"]*\)".*/\1/p' | head -1; }
 launch() { LW=10000 lun luna://com.webos.applicationManager/launch "{\"id\":\"$1\",\"params\":{}}" >/dev/null; }
+held_recent() { h=$(cat /tmp/back-held 2>/dev/null); [ -n "$h" ] && [ $(( $(cut -d. -f1 /proc/uptime) - ${h%.*} )) -lt 4 ]; }
 skip_app() { case "$1" in ''|"$HOME_ID"|"$SET_ID"|com.webos.app.quicksettings|com.webos.app.screensaver*|com.webos.app.notification*) return 0;; esac; return 1; }
 target() { p=""; [ -e "$STATE/backchain-off" ] || p=$(sh "$D/lastapp.sh" before "$1"); if [ -n "$p" ]; then echo "$p"; else echo "$HOME_ID"; fi; }
 case ${1:-start} in
@@ -32,11 +35,14 @@ python $KW 2>/dev/null | while read -r ev; do
   { [ -s /tmp/launching ] || [ -e /tmp/launch-cancelled ]; } && sh "$D/lastapp.sh" cancel >/dev/null 2>&1 && continue      # (the file test keeps the common case free of a shell start)
   a=$(cat /tmp/fgnow 2>/dev/null); [ -n "$a" ] || a=$(fgid); skip_app "$a" && continue         # /tmp/fgnow is kept by lastapp.sh (SAM life events): no luna call before acting
   case $ev in
-    LEAVE) t=$(target "$a"); log "backchain: Back held / pressed twice in $a -> $t"; launch "$t";;
+    LEAVE) t=$(target "$a"); log "backchain: Back pressed twice in $a -> $t"; launch "$t";;
+    HOLD)  up > /tmp/back-held; log "backchain: Back held in $a -> quit it, Home"
+           launch "$HOME_ID"; lun luna://com.webos.applicationManager/closeByAppId "{\"id\":\"$a\",\"forceMode\":true}" >/dev/null;;
     BACK)  [ -e "$STATE/backchain-off" ] && continue
            ( i=0; b=$a                                                                             # watch for the app quitting on this Back and act within 0.1 s of the TV landing
              while [ $i -lt 30 ]; do usleep 100000; b=$(cat /tmp/fgnow 2>/dev/null); [ -n "$b" ] && [ "$b" != "$a" ] && break; i=$((i+1)); done
              [ -n "$b" ] && [ "$b" != "$a" ] || exit 0                                            # still in the app: it used the key itself
+             held_recent && exit 0                                                                # the key was held: HOLD already quit the app and went Home
              case "$b" in "$SET_ID"|com.webos.app.quicksettings|com.webos.app.screensaver*|com.webos.app.notification*) exit 0;; esac     # an overlay on top, not a landing (Home is a landing: apps that quit on Back often land there)
              t=$(target "$a"); [ "$b" = "$t" ] && exit 0
              log "backchain: $a quit (TV showed $b) -> $t"; launch "$t" ) </dev/null >/dev/null 2>&1 &;;

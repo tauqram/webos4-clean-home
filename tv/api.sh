@@ -136,6 +136,8 @@ except Exception: print('no')" 2>/dev/null)
                 else bad; fi;;
   /api/back)    # Back on Home: return to the app / input you were in before Home (tracked by lastapp.sh). While an app is loading (its splash is up, Home still has the key) Back cancels that launch instead
                 if timeout -t 8 sh "$D/lastapp.sh" cancel </dev/null >/dev/null 2>&1; then hdr "200 OK"; echo '{"back":"cancel"}'; exit 0; fi
+                h=$(cat /tmp/back-held 2>/dev/null)      # Back was just held in an app to quit it: the rest of that key press must not bring an app back
+                if [ -n "$h" ] && [ $(( $(cut -d. -f1 /proc/uptime) - ${h%.*} )) -lt 4 ]; then hdr "200 OK"; echo '{"back":"","held":true}'; exit 0; fi
                 id=$(timeout -t 8 sh "$D/lastapp.sh" top 2>/dev/null)
                 if ok_id "$id"; then log "api: Back on Home -> $id"; hdr "200 OK"; LW=10000 lun luna://com.webos.applicationManager/launch "{\"id\":\"$id\",\"params\":{}}" >/dev/null; echo "{\"back\":\"$id\"}"
                 else hdr "200 OK"; echo '{"back":""}'; fi;;
