@@ -226,7 +226,7 @@ function gridApps(list, inDock){
   return g.map(function(a, i){ var k = o.indexOf(a.id); return {a: a, k: k < 0 ? 1e6 + i : k}; }).sort(function(x, y){ return x.k - y.k; }).map(function(x){ return x.a; });
 }
 function layoutRows(){
-  var hb = [$('b-inputs'), $('b-eco'), $('b-net'), $('b-settings')], dock = [].slice.call($('dock').children), g = [].slice.call($('grid').children), gr = [], top = -1;
+  var hb = [$('b-theme'), $('b-eco'), $('b-net'), $('b-settings')], dock = [].slice.call($('dock').children), g = [].slice.call($('grid').children), gr = [], top = -1;
   g.forEach(function(t){ if (t.offsetTop !== top) { gr.push([]); top = t.offsetTop; } gr[gr.length - 1].push(t); });
   rows = [hb, dock].concat(gr).filter(function(r){ return r.length; });
   if (R >= rows.length) R = rows.length - 1; if (C >= rows[R].length) C = rows[R].length - 1;
@@ -239,7 +239,7 @@ function loadApps(cb){
 }
 var lastFocus = null, glowSide = 0;
 // the large line above the rows names whatever has the focus
-var HERO_BTN = {'b-eco': ['Économie d’énergie', 'Baisse la luminosité de l’écran, pour le soir'], 'b-inputs': ['Entrées', 'HDMI, TV en direct et autres sources'], 'b-net': ['Réseau', 'Connexion et adresse de la TV'], 'b-settings': ['Réglages', 'Image, son, veille et confidentialité']};
+var HERO_BTN = {'b-eco': ['Économie d’énergie', 'Baisse la luminosité de l’écran, pour le soir'], 'b-theme': ['Thème', 'Les couleurs et le fond de l’accueil'], 'b-inputs': ['Entrées', 'HDMI, TV en direct et autres sources'], 'b-net': ['Réseau', 'Connexion et adresse de la TV'], 'b-settings': ['Réglages', 'Image, son, veille et confidentialité']};
 function setHero(e){
   var t = $('htitle'), s = $('hsub'); if (!t || !s) return;
   var b = HERO_BTN[e.id];
@@ -436,6 +436,12 @@ function openEco(){
     for (var i = 0; i < ECO.length; i++) if (ECO[i][0] === cur) { panelFocus(i); break; }
   });
 }
+// the header's brush button: the theme list straight from Home (the remote's Input key still opens the inputs)
+function openThemes(){
+  var o = window.Theme ? Theme.options() : [['auto', 'Automatique']], cur = S.theme || 'auto', at = 0;
+  panelOpen('Thème', o.map(function(x, i){ if (x[0] === cur) at = i; return [(x[0] === cur ? '✓  ' : '') + x[1], '', function(){ panelClose(); if (x[0] !== (S.theme || 'auto')) setPath('theme', x[0]); }]; }));
+  panelFocus(at);
+}
 function openInputs(){ panelOpen('Entrées', CFG.inputs.map(function(i){ return [i[1], '', function(){ panelClose(); launch(i[0]); }]; })); }
 function openNet(){
   api('/api/net', function(err, j){
@@ -451,7 +457,7 @@ function openNet(){
 }
 function activate(){
   var e = rows[R] && rows[R][C]; if (!e) return;
-  if (e._app) launch(e._app.id); else if (e.id === 'b-inputs') openInputs(); else if (e.id === 'b-eco') openEco(); else if (e.id === 'b-net') openNet(); else if (e.id === 'b-settings') openSettings();
+  if (e._app) launch(e._app.id); else if (e.id === 'b-inputs') openInputs(); else if (e.id === 'b-theme') openThemes(); else if (e.id === 'b-eco') openEco(); else if (e.id === 'b-net') openNet(); else if (e.id === 'b-settings') openSettings();
 }
 
 /* ================= keypad (ZIP entry) ================= */
