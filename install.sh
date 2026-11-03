@@ -10,7 +10,7 @@ set -u
 cd "$(dirname "$0")" || exit 1
 CHECK=0; YES=0; AUTOUP=0; IP=""
 for a in "$@"; do case $a in --check) CHECK=1;; --yes) YES=1;; --auto-update) AUTOUP=1;; -h|--help) sed -n 2,9p "$0"; exit 0;; *) IP=$a;; esac; done
-ask() { [ $YES = 1 ] && return 0; read -r -p "$1 [y/N] " r; [ "$r" = y ] || [ "$r" = Y ]; }
+ask() { [ $YES = 1 ] && return 0; read -r -p "$1 [y/N] " r; r=$(printf '%s' "$r" | tr -d '\r ' | tr 'A-Z' 'a-z'); case $r in y|yes|o|oui) return 0;; esac; return 1; }   # tolerant of a Windows console CR
 step() { echo; echo "=== $*"; }
 if [ -n "$IP" ]; then printf 'TV_IP=%s\nTV_USER=root\n' "$IP" > tv.conf; echo "wrote tv.conf (TV_IP=$IP)"; fi
 [ -f tv.conf ] || { echo "usage: ./install.sh <tv-ip> [--check] [--yes]"; exit 2; }

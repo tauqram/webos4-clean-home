@@ -4,7 +4,8 @@
 set -u
 cd "$(dirname "$0")/.." || exit 1
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
-ask() { read -r -p "$1 [o/N] " r; [ "$r" = o ] || [ "$r" = O ] || [ "$r" = y ] || [ "$r" = Y ]; }
+# Tolerant yes: o, oui, y, yes (any case), with stray spaces or a Windows CR removed.
+ask() { read -r -p "$1 [o/N] " r; r=$(printf '%s' "$r" | tr -d '\r ' | tr 'A-Z' 'a-z'); case $r in o|oui|y|yes) return 0;; esac; echo "Réponse « $r » comprise comme non."; return 1; }
 
 say "Installation de l'accueil personnalisé sur la TV"
 echo "La TV doit être allumée, rootée (Homebrew Channel installé, SSH activé) et sur le même réseau que ce PC."
@@ -39,7 +40,7 @@ fi
 say "3/4  Installation"
 echo "Le script demande avant chaque étape (réponds y). Conseil : à la dernière question (« Install the hook? », démarrage automatique), réponds n la première fois."
 echo "Tant que ce n'est pas installé, un redémarrage de la TV la remet d'origine. Relance ce script plus tard pour l'installer."
-ask "Lancer l'installation maintenant ?" || exit 0
+ask "Lancer l'installation maintenant ?" || { echo "Rien n'a été installé. Relance Installer-TV.cmd quand tu veux."; exit 0; }
 ./install.sh "$IP"
 
 say "4/4  Terminé"
