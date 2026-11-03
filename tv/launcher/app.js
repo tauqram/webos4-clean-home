@@ -226,7 +226,7 @@ function gridApps(list, inDock){
   return g.map(function(a, i){ var k = o.indexOf(a.id); return {a: a, k: k < 0 ? 1e6 + i : k}; }).sort(function(x, y){ return x.k - y.k; }).map(function(x){ return x.a; });
 }
 function layoutRows(){
-  var hb = [$('b-inputs'), $('b-net'), $('b-settings')], dock = [].slice.call($('dock').children), g = [].slice.call($('grid').children), gr = [], top = -1;
+  var hb = [$('b-inputs'), $('b-eco'), $('b-net'), $('b-settings')], dock = [].slice.call($('dock').children), g = [].slice.call($('grid').children), gr = [], top = -1;
   g.forEach(function(t){ if (t.offsetTop !== top) { gr.push([]); top = t.offsetTop; } gr[gr.length - 1].push(t); });
   rows = [hb, dock].concat(gr).filter(function(r){ return r.length; });
   if (R >= rows.length) R = rows.length - 1; if (C >= rows[R].length) C = rows[R].length - 1;
@@ -239,7 +239,7 @@ function loadApps(cb){
 }
 var lastFocus = null, glowSide = 0;
 // the large line above the rows names whatever has the focus
-var HERO_BTN = {'b-inputs': ['Entrées', 'HDMI, TV en direct et autres sources'], 'b-net': ['Réseau', 'Connexion et adresse de la TV'], 'b-settings': ['Réglages', 'Image, son, veille et confidentialité']};
+var HERO_BTN = {'b-eco': ['Économie d’énergie', 'Baisse la luminosité de l’écran, pour le soir'], 'b-inputs': ['Entrées', 'HDMI, TV en direct et autres sources'], 'b-net': ['Réseau', 'Connexion et adresse de la TV'], 'b-settings': ['Réglages', 'Image, son, veille et confidentialité']};
 function setHero(e){
   var t = $('htitle'), s = $('hsub'); if (!t || !s) return;
   var b = HERO_BTN[e.id];
@@ -419,6 +419,23 @@ function hiddenPanel(at){
   if (!l.length) l.push(['Aucune app masquée', '']);
   panelOpen('Apps masquées', l); if (at) panelFocus(at);
 }
+// the header's sun / moon button: LG's picture.energySaving (OLED: lowers the light a lot), one press away from Home
+var ECO = [['off', 'Désactivée', 'luminosité normale'], ['min', 'Minimum', ''], ['med', 'Moyenne', ''], ['max', 'Maximum', 'le plus sombre'], ['auto', 'Automatique', 'selon la lumière de la pièce']];
+var SVG_SUN = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    SVG_MOON = '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>';
+function ecoShow(v){
+  var on = v && v !== 'off', n = {min: 'Éco min', med: 'Éco moyen', max: 'Éco max', auto: 'Éco auto'};
+  $('ecoico').innerHTML = on ? SVG_MOON : SVG_SUN; $('ecolabel').textContent = on ? (n[v] || 'Éco') : 'Éco';
+}
+function ecoRead(cb){ lgLoad('picture', ['energySaving'], function(){ var v = (LGC.picture || {}).energySaving; ecoShow(v); if (cb) cb(v); }); }
+function openEco(){
+  ecoRead(function(cur){
+    panelOpen('Économie d’énergie', ECO.map(function(o){ return [(o[0] === cur ? '✓  ' : '') + o[1], o[2], function(){
+      panelClose(); lgSet('picture', 'energySaving', o[0], function(){ ecoRead(); toast('Économie d’énergie : ' + o[1].toLowerCase()); });
+    }]; }));
+    for (var i = 0; i < ECO.length; i++) if (ECO[i][0] === cur) { panelFocus(i); break; }
+  });
+}
 function openInputs(){ panelOpen('Entrées', CFG.inputs.map(function(i){ return [i[1], '', function(){ panelClose(); launch(i[0]); }]; })); }
 function openNet(){
   api('/api/net', function(err, j){
@@ -434,7 +451,7 @@ function openNet(){
 }
 function activate(){
   var e = rows[R] && rows[R][C]; if (!e) return;
-  if (e._app) launch(e._app.id); else if (e.id === 'b-inputs') openInputs(); else if (e.id === 'b-net') openNet(); else if (e.id === 'b-settings') openSettings();
+  if (e._app) launch(e._app.id); else if (e.id === 'b-inputs') openInputs(); else if (e.id === 'b-eco') openEco(); else if (e.id === 'b-net') openNet(); else if (e.id === 'b-settings') openSettings();
 }
 
 /* ================= keypad (ZIP entry) ================= */
@@ -1197,7 +1214,7 @@ function onShow(){
   if (Date.now() - appsAt > 60000) { appsAt = Date.now(); loadApps(function(ok){ if (ok) focusItem(Math.min(1, rows.length - 1), 0); }); }
   wxLoad(false); loadSettings(); refreshPhotos(function(ch){ if (ch) bgApply(true); });
   if (photos.length && S.bg.on && Date.now() - bgAt > Math.max(1, S.bg.everyMin) * 60000) bgShow(bgIx + 1);
-  netLabel();
+  netLabel(); if (!SETMODE) ecoRead();
 }
 function onHide(){ clearTimeout(idleT); if (saverOn) saverStop(); if (mtop() === 'panel') panelClose(); }
 
@@ -1239,7 +1256,7 @@ if (INPMODE) {
     api('/api/ready', function(){ dlog('ready apps=' + apps.length + ' ok=' + ok + ' ua=' + navigator.userAgent.slice(-40)); });
   });
   setTimeout(function(){ api('/api/ready', noop); }, 4000);    // ready even if the app list is slow, so the 30 s Home watchdog only trips when the API is gone
-  netLabel(); activity();
+  netLabel(); if (!SETMODE) ecoRead(); activity();
   // fast path of the Settings key (api.sh /api/ui/*): while Home is in front the compositor hands the key to this page, which opens its own Settings instead of a second page
   function uiWait(){
     if (MOCK) return;
