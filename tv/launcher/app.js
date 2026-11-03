@@ -201,8 +201,11 @@ function glowFor(a){
 }
 function mkTile(a, big){
   var t = el('div', 'tile ' + (big ? 'big' : 'sm')), ic = el('div', 'ic'), img = el('img'); img.alt = ''; img.src = iconUrl(a.largeIcon || a.icon);
-  if (big) {
-    ic.style.background = 'linear-gradient(150deg, rgba(255,255,255,.12) 0%, rgba(7,8,12,.55) 100%), ' + glowFor(a);   // wide card tinted with the app's colour
+  // LG's own Home paints each tile with the app's iconColor and draws the (often transparent) icon over it: do the same, so icons fill their tile as on LG's bar
+  var tb = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(a.iconColor || '') ? a.iconColor : '';
+  if (tb) { ic.style.setProperty('--tb', tb); ic.className += ' lgc'; }
+  else if (big) {
+    ic.style.background ='linear-gradient(150deg, rgba(255,255,255,.12) 0%, rgba(7,8,12,.55) 100%), ' + glowFor(a);   // wide card tinted with the app's colour
     var tint = el('div', 'tint'); tint.style.background = glowFor(a); ic.appendChild(tint);      // a flat tint, used by themes that want it (Azion)
   }
   ic.appendChild(img); ic.appendChild(el('div', 'ring')); t.appendChild(ic);

@@ -306,6 +306,14 @@ html,body{font-family:"Inter","LG Smart UI","Segoe UI",Helvetica,Arial,sans-seri
 .tile .ring{border-width:.2rem;left:-.6rem;top:-.6rem;right:-.6rem;bottom:-.6rem}
 .big .ring{border-radius:2.4rem}
 .sm .ring{border-radius:2.6rem}
+/* favourites: LG's app icons are square artwork with their own background, so they fill the whole card (like LG's own bar) instead of a small icon floating in a wide card */
+.big{width:12.4rem;margin-right:2.6rem}
+.big .ic{width:12.4rem;height:12.4rem;border-radius:2.2rem;overflow:hidden}
+.big .ic img{width:100%;height:100%;border-radius:inherit;box-shadow:none;object-fit:cover}
+.big .ring{border-radius:2.7rem}
+body.th-azion .big .ic{border-radius:2.2rem}
+html body .tile .ic.lgc,html body.th-azion .tile .ic.lgc{background:var(--tb) !important}
+.tile .ic.lgc img{background:transparent}
 
 /* Azion: the Azion design system — graphite #161616, surfaces lit by steps (+3 %, +6 %, +12 % white), off-white text,
    grey focus. No decoration: the light comes from above, nothing moves. */
