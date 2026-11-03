@@ -123,6 +123,17 @@ case "$P" in
   /api/launch)  id=$(qget id)
                 if ok_id "$id"; then hdr "200 OK"; LW=10000 lun luna://com.webos.applicationManager/launch "{\"id\":\"$id\",\"params\":{}}"
                 else bad; fi;;
+  /api/uninstall) # long press OK on Home, bin, "Désinstaller": only apps LG itself marks as removable (never system apps, never our own)
+                id=$(qget id)
+                if ok_id "$id" && case "$id" in com.webos.*|com.palm.*|com.lge.*|tv.debloat.*|webosbrew*|org.webosbrew.*) false;; *) true;; esac; then
+                  rm_ok=$(LW=8000 lun luna://com.webos.applicationManager/listLaunchPoints '{}' | python -c "import sys,json
+try:
+  j=json.load(sys.stdin); print('yes' if [a for a in j.get('launchPoints',[]) if a.get('id')=='$id' and a.get('removable') is True] else 'no')
+except Exception: print('no')" 2>/dev/null)
+                  hdr "200 OK"
+                  if [ "$rm_ok" = yes ]; then log "api: uninstall $id"; LW=60000 lun luna://com.webos.appInstallService/remove "{\"id\":\"$id\",\"subscribe\":false}"
+                  else echo '{"returnValue":false,"errorText":"not removable"}'; fi
+                else bad; fi;;
   /api/back)    # Back on Home: return to the app / input you were in before Home (tracked by lastapp.sh). While an app is loading (its splash is up, Home still has the key) Back cancels that launch instead
                 if timeout -t 8 sh "$D/lastapp.sh" cancel </dev/null >/dev/null 2>&1; then hdr "200 OK"; echo '{"back":"cancel"}'; exit 0; fi
                 id=$(timeout -t 8 sh "$D/lastapp.sh" top 2>/dev/null)

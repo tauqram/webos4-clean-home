@@ -248,7 +248,7 @@ body.hasbg #hsub{color:#d5dbe8;text-shadow:0 .1rem .5rem rgba(0,0,0,.8)}
 body.hasbg #themebg,body.mode-settings #themebg{display:none}
 body.saving #themebg div{-webkit-animation-play-state:paused;animation-play-state:paused}
 .tile .ring{border-color:var(--accent)}
-.hbtn.foc,body.hasbg .hbtn.foc{background:var(--accent);border-color:var(--accent)}
+.hbtn.foc,body.hasbg .hbtn.foc{background:var(--accent);border-color:var(--accent);color:#0b0d12}      /* dark text: white on a light accent (Bleu nuit, Aurore) could not be read */
 #hsub{color:var(--accent);opacity:.8}
 
 /* Noir OLED: pure black, the pixels behind the rows are off */
@@ -345,7 +345,7 @@ html body .tile .ic.lgc,html body.th-azion .tile .ic.lgc{background:var(--tb) !i
    grey focus. No decoration: the light comes from above, nothing moves. */
 body.th-azion{--bg:#161616;--card:#1d1d1d;--text:#ecebe8;--dim:#aeada7;--line:rgba(255,255,255,.08)}
 body.th-azion #themebg{background:#161616}
-body.th-azion .tb1{display:block;left:0;top:0;width:100%;height:60%;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0))}
+/* Azion is one flat graphite: a soft light-from-above gradient showed as visible steps (banding) on the OLED panel, so it is gone */
 body.th-azion #date{color:#aeada7;border-left-color:rgba(255,255,255,.12)}
 body.th-azion #time{color:#ecebe8}
 body.th-azion #htitle{color:#ecebe8}

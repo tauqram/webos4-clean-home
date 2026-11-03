@@ -1093,7 +1093,7 @@ function tedDraw(){
   $('htitle').textContent = (t._app.title || t._app.id);
   $('hsub').textContent = ted.sel < 0 ? '◀ ▶ pour déplacer  ·  ▲ favori ou masquer  ·  OK pour terminer'
     : ted.sel === 0 ? (fav ? 'OK pour retirer des favoris' : (S.dock.length >= FAV_MAX ? FAV_MAX + ' favoris au maximum : retires-en un d’abord' : 'OK pour ajouter aux favoris')) + '  ·  ▼ pour revenir'
-    : 'OK pour masquer cette app de l’accueil (Réglages › Accueil et veille › Apps masquées pour la remettre)  ·  ▼ pour revenir';
+    : (t._app.removable ? 'OK pour désinstaller ou masquer cette app' : 'OK pour masquer cette app (les apps de LG ne se désinstallent pas)') + '  ·  ▼ pour revenir';
 }
 // the ids of the row group the tile belongs to (favourites, or the whole grid), in display order
 function tedSiblings(){ if (S.dock.indexOf(ted.id) >= 0) return S.dock.slice(); return [].map.call($('grid').children, function(n){ return n._app.id; }); }
@@ -1116,9 +1116,32 @@ function tedHide(){
   tedClose(); buildApps(apps); if (p) focusItem(p[0], p[1]);
   toast('App masquée. Réglages › Accueil et veille › Apps masquées pour la remettre');
 }
+// the bin: uninstall (apps LG marks as removable) or only hide from Home; asked in a small list so nothing goes by accident
+function tedBin(){
+  var p = tedTile(); if (!p) return; var a = rows[p[0]][p[1]]._app, nm = a.title || a.id, l = [];
+  if (a.removable) l.push(['Désinstaller ' + nm, 'supprime l’app de la TV', function(){ panelClose(); tedUninstall(a); }]);
+  l.push(['Masquer de l’accueil', 'se remet dans Réglages', function(){ panelClose(); tedHide(); }]);
+  l.push(['Annuler', '', function(){ panelClose(); }]);
+  panelOpen(nm, l);
+}
+function tedUninstall(a){
+  var nm = a.title || a.id; toast('Désinstallation de ' + nm + '…');
+  api('/api/uninstall?id=' + encodeURIComponent(a.id), function(err, j){
+    if (err || !j || j.returnValue === false) { toast('Impossible de désinstaller ' + nm + (j && j.errorText ? ' (' + j.errorText + ')' : '')); return; }
+    var id = a.id, p = tedTile();
+    tedSilent = true;
+    if (S.dock.indexOf(id) >= 0) setPath('dock', S.dock.filter(function(x){ return x !== id; }));
+    if ((S.order || []).indexOf(id) >= 0) setPath('order', S.order.filter(function(x){ return x !== id; }));
+    tedSilent = false;
+    apps = apps.filter(function(x){ return x.id !== id; }); favApps = null;
+    tedClose(); buildApps(apps); if (p) focusItem(p[0], p[1]);
+    toast(nm + ' est désinstallée');
+    setTimeout(function(){ loadApps(); }, 4000);      // LG's own list, once the removal has finished
+  }, 65000);
+}
 function tedClose(){ if (!ted) return; ted = null; mpop('tedit'); tedDraw(); if (rows[R] && rows[R][C]) setHero(rows[R][C]); }
 function tedKey(k, e){
-  if (k === 13) { if (okLong || (e && e.repeat)) return; if (ted.sel === 0) tedFav(); else if (ted.sel === 1) tedHide(); else tedClose(); return; }
+  if (k === 13) { if (okLong || (e && e.repeat)) return; if (ted.sel === 0) tedFav(); else if (ted.sel === 1) tedBin(); else tedClose(); return; }
   if (k === 461 || k === 27 || k === 8) { if (ted.sel >= 0) { ted.sel = -1; tedDraw(); } else tedClose(); return; }
   if (k === 38) { if (ted.sel < 0) { ted.sel = 0; tedDraw(); } return; }
   if (k === 40) { if (ted.sel >= 0) { ted.sel = -1; tedDraw(); } return; }
