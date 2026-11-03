@@ -967,10 +967,16 @@ function settingsKey(k, e){
   else if (k === 13) {
     if (it.type === 'thumb') thumbMenu(it.name);
     else if (it.type === 'toggle') adjust(it, 1);
-    else if (it.type === 'choice') adjust(it, 1);
+    else if (it.type === 'choice') choicePanel(it);      // OK opens the list of choices (◀ ▶ still step through them)
     else if (it.type === 'action' || it.type === 'text') it.run();
   }
   else if (k === 461 || k === 27 || k === 8) { paneSet(false); setArea('cats'); }
+}
+// OK on a ◀ ▶ row: the whole list, the current one ticked; OK picks, Back leaves it unchanged
+function choicePanel(it){
+  var o = optsOf(it), cur = String(it.get()), at = 0;
+  panelOpen(it.label, o.map(function(x, i){ if (String(x[0]) === cur) at = i; return [(String(x[0]) === cur ? '✓  ' : '') + x[1], '', function(){ panelClose(); if (String(x[0]) !== String(it.get())) it.set(x[0]); paintRow(it); }]; }));
+  panelFocus(at);
 }
 function thumbMenu(name){
   panelOpen('Photo', [
