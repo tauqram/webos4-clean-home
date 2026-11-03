@@ -28,6 +28,7 @@ var DEFAULTS = {
   theme: 'auto',
   ui: {hideCursor: true},
   dock: ['netflix','youtube.leanback.v4','amazon','com.disney.disneyplus-prod'],
+  order: [],      // the order of the app grid chosen on Home (long press OK, then left / right); apps not listed keep LG's order, after these
   hide: ['webos.day','com.webos.app.homeconnect','com.webos.app.home','com.webos.app.fullhome']
 };
 var S = clone(DEFAULTS);
@@ -89,13 +90,13 @@ function settingsChanged(path){
   if (path.indexOf('bg.') === 0) { bgApply(true); }
   if (path.indexOf('saver.') === 0) activity();
   if (path.indexOf('ui.') === 0 || path === 'theme') applyUi();
-  if (path === 'dock' && apps.length) buildApps(apps);
+  if ((path === 'dock' || path === 'hide' || path === 'order') && apps.length && !tedSilent) buildApps(apps);
 }
 function applyRemoteSettings(j){
   if (!j || typeof j !== 'object') return;
   var n = merge(clone(DEFAULTS), j), a = JSON.stringify(n), b = JSON.stringify(S);
   if (a === b || saveT) return;      // unchanged, or we have an unsaved local edit
-  var dockCh = JSON.stringify(n.dock) !== JSON.stringify(S.dock) || JSON.stringify(n.hide) !== JSON.stringify(S.hide), wxCh = JSON.stringify(n.weather) !== JSON.stringify(S.weather), bgCh = JSON.stringify(n.bg) !== JSON.stringify(S.bg);
+  var dockCh = JSON.stringify(n.dock) !== JSON.stringify(S.dock) || JSON.stringify(n.hide) !== JSON.stringify(S.hide) || JSON.stringify(n.order) !== JSON.stringify(S.order), wxCh = JSON.stringify(n.weather) !== JSON.stringify(S.weather), bgCh = JSON.stringify(n.bg) !== JSON.stringify(S.bg);
   S = n; applyUi();
   if (SETMODE) { if (settingsOn) renderCat(false); return; }
   lastT = ''; tick(); if (dockCh && apps.length) buildApps(apps); if (wxCh) wxLoad(true); if (bgCh) bgApply(true); activity(); if (settingsOn) renderCat(false);
@@ -215,8 +216,13 @@ function buildApps(list){
   var dock = $('dock'), grid = $('grid'); dock.innerHTML = ''; grid.innerHTML = '';
   var byId = {}, inDock = {}; list.forEach(function(a){ byId[a.id] = a; });
   S.dock.forEach(function(id){ if (byId[id]) { dock.appendChild(mkTile(byId[id], true)); inDock[id] = 1; } });
-  list.forEach(function(a){ if (inDock[a.id] || S.hide.indexOf(a.id) >= 0 || a.visible === false) return; grid.appendChild(mkTile(a, false)); });
+  gridApps(list, inDock).forEach(function(a){ grid.appendChild(mkTile(a, false)); });
   layoutRows();
+}
+// the apps of the grid, in the order chosen on Home (S.order) and then LG's order for anything new
+function gridApps(list, inDock){
+  var g = list.filter(function(a){ return !inDock[a.id] && S.hide.indexOf(a.id) < 0 && a.visible !== false; }), o = S.order || [];
+  return g.map(function(a, i){ var k = o.indexOf(a.id); return {a: a, k: k < 0 ? 1e6 + i : k}; }).sort(function(x, y){ return x.k - y.k; }).map(function(x){ return x.a; });
 }
 function layoutRows(){
   var hb = [$('b-inputs'), $('b-net'), $('b-settings')], dock = [].slice.call($('dock').children), g = [].slice.call($('grid').children), gr = [], top = -1;
@@ -237,7 +243,7 @@ function setHero(e){
   var t = $('htitle'), s = $('hsub'); if (!t || !s) return;
   var b = HERO_BTN[e.id];
   t.textContent = b ? b[0] : (e._app ? e._app.title || e._app.id : '');
-  s.textContent = b ? b[1] : 'OK pour ouvrir';
+  s.textContent = b ? b[1] : ted ? '◀ ▶ pour déplacer  ·  ▲ favori ou masquer  ·  OK pour terminer' : 'OK pour ouvrir  ·  appui long sur OK pour modifier';
 }
 function setGlow(color){
   var a = $('glowA'), b = $('glowB'), n = glowSide ? a : b, o = glowSide ? b : a; glowSide = 1 - glowSide;
@@ -403,6 +409,15 @@ function favToggle(id, i){
   if (k >= 0) d.splice(k, 1); else { if (d.length >= FAV_MAX) { toast(FAV_MAX + ' favoris au maximum : retires-en un d’abord'); return; } d.push(id); }
   setPath('dock', d); favPanel(i); if (settingsOn) renderCat(false);
 }
+// apps hidden from Home by the owner (the system entries hidden by default are not offered)
+function userHidden(){ return S.hide.filter(function(id){ return DEFAULTS.hide.indexOf(id) < 0; }); }
+function hiddenPanel(at){
+  if (!favApps) { api('/api/apps', function(e, j){ if (j && j.launchPoints) { favApps = j.launchPoints; hiddenPanel(at); } else toast('Impossible de lire la liste des apps'); }, 15000); return; }
+  var by = {}; favApps.forEach(function(a){ by[a.id] = a; });
+  var l = userHidden().map(function(id){ return [(by[id] && by[id].title) || id, 'remettre', function(){ setPath('hide', S.hide.filter(function(x){ return x !== id; })); toast('De retour sur l’accueil'); hiddenPanel(pIdx); if (settingsOn) renderCat(false); }]; });
+  if (!l.length) l.push(['Aucune app masquée', '']);
+  panelOpen('Apps masquées', l); if (at) panelFocus(at);
+}
 function openInputs(){ panelOpen('Entrées', CFG.inputs.map(function(i){ return [i[1], '', function(){ panelClose(); launch(i[0]); }]; })); }
 function openNet(){
   api('/api/net', function(err, j){
@@ -564,7 +579,8 @@ cats = [
   ]; }},
   {id: 'home', name: 'Accueil et veille', icon: 'home', title: 'Accueil et veille', desc: 'Photos de fond, écran de veille et horloge.', build: function(){ return [
     chc('Thème', 'Fond, couleur d’accent et animation de veille. Automatique = le thème de la saison quand il y en a un', window.Theme ? Theme.options() : [['auto', 'Automatique']], function(){ return S.theme || 'auto'; }, function(v){ setPath('theme', v); }),
-    act('Favoris', 'Les grandes cartes en haut de l’accueil. OK, puis OK sur une app pour l’ajouter ou la retirer (6 au maximum, dans l’ordre choisi).', function(){ favPanel(0); }, S.dock.length + ' app' + (S.dock.length > 1 ? 's' : '') + '  ▶'),
+    act('Favoris', 'Les grandes cartes en haut de l’accueil (6 au maximum). Plus simple : sur l’accueil, appui long sur OK sur une app, puis ▲ et l’étoile. ◀ ▶ la déplacent.', function(){ favPanel(0); }, S.dock.length + ' app' + (S.dock.length > 1 ? 's' : '') + '  ▶'),
+    act('Apps masquées', 'Les apps retirées de l’accueil avec la corbeille (appui long sur OK). OK sur une app pour la remettre.', function(){ hiddenPanel(0); }, userHidden().length + '  ▶'),
     tgl('Photo en fond de l’accueil', 'Utilise les photos de ta galerie', function(){ return S.bg.on; }, function(b){ setPath('bg.on', b); }),
     chc('Changer de fond toutes les', '', [[5,'5 min'],[10,'10 min'],[20,'20 min'],[30,'30 min'],[60,'1 heure']], function(){ return S.bg.everyMin; }, function(v){ setPath('bg.everyMin', v); }),
     tgl('Veille en cas d’inactivité', 'Heure, date et météo après un moment', function(){ return S.saver.on; }, function(b){ setPath('saver.on', b); }),
@@ -1032,11 +1048,81 @@ function onKey(e){
   }
   if (m === 'editor') { edKey(k); e.preventDefault(); return; }
   if (m === 'settings') { settingsKey(k, e); e.preventDefault(); return; }
+  if (m === 'tedit') { tedKey(k, e); e.preventDefault(); return; }
   if (SETMODE) return;
   if (k === 461 || k === 27 || k === 8) { goBack(); e.preventDefault(); return; }
-  if (KEYS[k]) { move(KEYS[k]); e.preventDefault(); } else if (k === 13) { activate(); e.preventDefault(); }
+  if (KEYS[k]) { move(KEYS[k]); e.preventDefault(); }
+  else if (k === 13) {
+    e.preventDefault(); if (e.repeat || okT) return;
+    var cur = rows[R] && rows[R][C];
+    if (!cur || !cur._app || !e.type) { activate(); return; }      // buttons (and synthetic calls) open at once; apps wait for the release: short = open, long = edit
+    okT = setTimeout(function(){ okT = null; okLong = true; tedOpen(); }, OK_LONG);
+  }
+}
+/* ================= long press OK: edit an app in place (favourite, hide, move) ================= */
+var OK_LONG = 700, okT = null, okLong = false, ted = null, tedSilent = false;
+function onKeyUp(e){
+  if (e.keyCode !== 13) return;
+  if (okT) { clearTimeout(okT); okT = null; if (!mtop()) activate(); }
+  okLong = false;
+}
+var SVG_STAR = '<svg viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/></svg>',
+    SVG_HIDE = '<svg viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></svg>',
+    SVG_L = '<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>', SVG_R = '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>';
+function tedOpen(){
+  var t = rows[R] && rows[R][C]; if (!t || !t._app || mtop()) return;
+  ted = {id: t._app.id, sel: -1}; mpush('tedit'); tedDraw();
+}
+function tedTile(){ for (var r = 0; r < rows.length; r++) for (var c = 0; c < rows[r].length; c++) if (rows[r][c]._app && rows[r][c]._app.id === ted.id) return [r, c]; return null; }
+// (re)draws the edit decorations on the tile of ted.id, wherever it is now
+function tedDraw(){
+  [].forEach.call(document.querySelectorAll('.tile.edit'), function(n){ cls(n, 'edit', false); cls(n, 'onbtn', false); [].slice.call(n.querySelectorAll('.tmenu,.tarr')).forEach(function(x){ n.removeChild(x); }); });
+  if (!ted) return;
+  var p = tedTile(); if (!p) { tedClose(); return; }
+  focusItem(p[0], p[1]); var t = rows[p[0]][p[1]], fav = S.dock.indexOf(ted.id) >= 0, sib = tedSiblings();
+  var m = el('div', 'tmenu'), b1 = el('div', 'tb star' + (fav ? ' on' : ''), SVG_STAR), b2 = el('div', 'tb del', SVG_HIDE);
+  if (ted.sel === 0) b1.className += ' foc'; if (ted.sel === 1) b2.className += ' foc';
+  m.appendChild(b1); m.appendChild(b2); t.appendChild(m);
+  var i = sib.indexOf(ted.id);
+  if (i > 0) { var l = el('div', 'tarr l', SVG_L); t.appendChild(l); }
+  if (i >= 0 && i < sib.length - 1) { var r2 = el('div', 'tarr r', SVG_R); t.appendChild(r2); }
+  cls(t, 'edit', true); cls(t, 'onbtn', ted.sel >= 0);
+  $('htitle').textContent = (t._app.title || t._app.id);
+  $('hsub').textContent = ted.sel < 0 ? '◀ ▶ pour déplacer  ·  ▲ favori ou masquer  ·  OK pour terminer'
+    : ted.sel === 0 ? (fav ? 'OK pour retirer des favoris' : (S.dock.length >= FAV_MAX ? FAV_MAX + ' favoris au maximum : retires-en un d’abord' : 'OK pour ajouter aux favoris')) + '  ·  ▼ pour revenir'
+    : 'OK pour masquer cette app de l’accueil (Réglages › Accueil et veille › Apps masquées pour la remettre)  ·  ▼ pour revenir';
+}
+// the ids of the row group the tile belongs to (favourites, or the whole grid), in display order
+function tedSiblings(){ if (S.dock.indexOf(ted.id) >= 0) return S.dock.slice(); return [].map.call($('grid').children, function(n){ return n._app.id; }); }
+function tedMove(d){
+  var sib = tedSiblings(), i = sib.indexOf(ted.id), j = i + d; if (i < 0 || j < 0 || j >= sib.length) return;
+  sib[i] = sib[j]; sib[j] = ted.id;
+  tedSilent = true; setPath(S.dock.indexOf(ted.id) >= 0 ? 'dock' : 'order', sib); tedSilent = false;
+  buildApps(apps); tedDraw();
+}
+function tedFav(){
+  var d = S.dock.slice(), k = d.indexOf(ted.id);
+  if (k >= 0) d.splice(k, 1); else { if (d.length >= FAV_MAX) { toast(FAV_MAX + ' favoris au maximum : retires-en un d’abord'); return; } d.push(ted.id); }
+  tedSilent = true; setPath('dock', d); tedSilent = false; buildApps(apps); tedDraw();
+  toast(k >= 0 ? 'Retirée des favoris' : 'Ajoutée aux favoris');
+}
+function tedHide(){
+  var id = ted.id, p = tedTile(), h = S.hide.slice(), d = S.dock.filter(function(x){ return x !== id; });
+  if (h.indexOf(id) < 0) h.push(id);
+  tedSilent = true; if (d.length !== S.dock.length) setPath('dock', d); setPath('hide', h); tedSilent = false;
+  tedClose(); buildApps(apps); if (p) focusItem(p[0], p[1]);
+  toast('App masquée. Réglages › Accueil et veille › Apps masquées pour la remettre');
+}
+function tedClose(){ if (!ted) return; ted = null; mpop('tedit'); tedDraw(); if (rows[R] && rows[R][C]) setHero(rows[R][C]); }
+function tedKey(k, e){
+  if (k === 13) { if (okLong || (e && e.repeat)) return; if (ted.sel === 0) tedFav(); else if (ted.sel === 1) tedHide(); else tedClose(); return; }
+  if (k === 461 || k === 27 || k === 8) { if (ted.sel >= 0) { ted.sel = -1; tedDraw(); } else tedClose(); return; }
+  if (k === 38) { if (ted.sel < 0) { ted.sel = 0; tedDraw(); } return; }
+  if (k === 40) { if (ted.sel >= 0) { ted.sel = -1; tedDraw(); } return; }
+  if (k === 37 || k === 39) { if (ted.sel >= 0) { ted.sel = k === 37 ? 0 : 1; tedDraw(); } else tedMove(k === 37 ? -1 : 1); }
 }
 document.addEventListener('keydown', onKey);
+document.addEventListener('keyup', onKeyUp);
 // the Magic Remote's scroll wheel (which is also what makes the pointer appear) moves the highlight up / down, like the arrow keys, in lists, panels and Settings
 var wheelAt = 0;
 document.addEventListener('wheel', function(e){
@@ -1152,5 +1238,5 @@ if (INPMODE) {
   if (MOCK && /edit=(\S+?)(&|$)/.test(location.search)) setTimeout(function(){ edOpen(/edit=(\S+?)(&|$)/.exec(location.search)[1]); }, 1500);
 }
 applyUi();
-window.__tvhome = {set: setPath, saver: saverStart, stop: saverStop, bg: function(){ bgShow(bgIx + 1); }, settings: openSettings, photos: function(){ return photos.length; }, S: function(){ return S; }, wx: function(){ return wx; }, crops: function(){ return crops; }, edit: edOpen, key: function(k){ document.dispatchEvent(new KeyboardEvent('keydown', {keyCode: k})); }};
+window.__tvhome = {set: setPath, saver: saverStart, stop: saverStop, bg: function(){ bgShow(bgIx + 1); }, settings: openSettings, photos: function(){ return photos.length; }, S: function(){ return S; }, wx: function(){ return wx; }, crops: function(){ return crops; }, edit: edOpen, key: function(k){ document.dispatchEvent(new KeyboardEvent('keydown', {keyCode: k})); document.dispatchEvent(new KeyboardEvent('keyup', {keyCode: k})); }};
 })();
