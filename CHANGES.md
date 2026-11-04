@@ -375,7 +375,7 @@ Verified by the owner on the TV (photos): favourites, icons, edit mode, Éco, th
 whether energySaving set from Home applies to every input, the held-Back fix with the real remote, `tools/check.sh` on the C9.
 `tools/test-init.sh` fails in the build container only because it has real `initctl`/`systemctl` on the PATH (init.sh and the test are unchanged).
 
-## Pending on branch `pending-tv-fixes` (not released yet)
+## Release 2026.11.04.2 (2026-11-04, Sam's C9: deployed from branch `pending-tv-fixes`; night shutdown set to 22-7 on the TV)
 
 | What | Where | Undo |
 |---|---|---|
@@ -383,6 +383,7 @@ whether energySaving set from Home applies to every input, the held-Back fix wit
 | Boot cover also hides an input or app at boot when the power-on destination is Home; boot forces `general.homeAutoLaunch=on` for that destination | `tv/cover.sh`, `tv/boot.sh` | revert the commit; `poweron.sh set last` |
 | Full shutdown at night: between FROM and TO o'clock LG's Quick Start+ (`option.quickStartMode`, values on/off on the C9) is switched off, outside it on; checked once a minute by the home-on.sh watchdog (LG reads the switch when the TV is turned off). Settings -> Alimentation -> "Arrêt complet la nuit"; `/api/nightoff?v=off|FROM-TO`; off by default (no `state/nightoff.conf`) | `tv/nightoff.sh` (new), `tv/home-on.sh`, `tv/api.sh`, `tv/poweron.sh` (get adds `night`), `app.js` | `sh nightoff.sh set off` (leaves quickStartMode as it is; set it in Settings) |
 
+Verified on the C9 at 21:35: deploy OK, Home cycle OK, getSystemTime gives the right local hour (21), quickStartMode switched to on outside the window.
 Tested in the build container: nightoff.sh window parsing and the on/off decisions for 22-7 and 0-7 against a fake luna (hours 12, 21, 22, 23, 0, 6, 7, 8), the one-line-per-hour standby log; Settings page rendered with mock data.
 NOT verified on the TV: the local hour from `com.palm.systemservice/time/getSystemTime` (falls back to `date`), that LG honours a quickStartMode change made a minute before power-off,
 and whether our loops keep running in Quick Start+ standby (the log line "nightoff: still running at ..h while the TV is in ..." answers that; if they do, a TV left in standby at 22h could later be powered down for real: not built).

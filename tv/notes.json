@@ -1,5 +1,15 @@
 [
   {
+    "v": "2026.11.04.2",
+    "date": "2026-11-04",
+    "title": "Retour sur l'accueil, démarrage et arrêt la nuit",
+    "notes": [
+      "Sur l'accueil, le bouton Retour ne fait plus rien : il ne relance plus la dernière app ni l'entrée HDMI.",
+      "Au démarrage complet, l'écran « démarrage » cache aussi l'entrée HDMI pendant que la télé arrive sur l'accueil.",
+      "Nouveau : Réglages, Alimentation et minuteries, « Arrêt complet la nuit ». Pendant les heures choisies (par exemple 22 h – 7 h), éteindre la télé l'éteint vraiment ; le reste du temps, elle se rallume en deux secondes. Désactivé par défaut, encore en test sur une seule télé."
+    ]
+  },
+  {
     "v": "2026.11.04.1",
     "date": "2026-11-04",
     "title": "Accueil plus joli, appui long et bouton Éco",

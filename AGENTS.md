@@ -61,7 +61,7 @@ tv/                   everything deployed to /media/developer/tv-debloat on the 
   blocklist.sh        Pi-hole style ad blocking: builds the "# tv-debloat begin/end" block in /etc/hosts from blocklists/ + state/lists/ + custom/allow lists
   blocklists/         lists.tsv (catalog), lg/ads/trackers/streaming.txt (built-in), allow.txt (never blocked)
   settings-hook.sh    makes the remote's Settings (gear) key open OUR Settings: watches the log for LG's quick panel / Settings app, closes it, opens the overlay
-  lastapp.sh          start|stop|top|before: history of apps/inputs in /tmp/appstack (closed apps skipped); api.sh /api/back launches the newest (Back on Home)
+  lastapp.sh          start|stop|top|before: history of apps/inputs in /tmp/appstack (closed apps skipped); api.sh /api/back launches the newest (Back on Home used it until 2026-11-04; now Home ignores Back)
   backchain.sh        start|stop: Back from an app returns to the previous app (keywatch.py reads KEY_BACK from /dev/input/event* of the LGE remotes; history from lastapp.sh)
   keywatch.py         read-only evdev Back-key reporter (Python 2.7; struct input_event is 16 bytes). Test without the remote: write a 16-byte KEY_BACK (code 158) down+up event pair to /dev/input/event1
   pointer.sh          off|on|apply|watch|stop: EXPERIMENTAL Magic Remote pointer switch (wake-on-shake + motion sensor off), re-applied by a watcher when the remote reconnects
@@ -149,7 +149,7 @@ Facts verified on webOS 4.5 (re-verify on other versions):
 - `hosts` cannot wildcard. A real Pi-hole (DNS sinkhole with wildcards + query log) would need a local DNS service; not built (risk to networking).
 - Do not touch `ss.gateway` / second-screen: Homebrew Channel uses that identity for privileged luna calls.
 - The Magic Remote pointer cannot be switched off from the system side (see `tools/pointer-experiment.sh`); our own pages hide it with CSS only. Untested lead (`tv/pointer.sh`): mrcu `/cursor/setWakeUpCondition {"condition":"motion|shake"}`; mrcu calls only work while the remote is awake (`Magic Remote is not Ready` otherwise) and reset on reconnect. Other mrcu methods seen in `lginput2`: `/cursor/setPosition{posX,posY}`, `setSlideMode`, `/sensor/setCursorBounds`, `setHotkeyCursorPolicy{button,cursorPolicy}`, `activateMrcu` (could disable the remote: do not try without a way back). Surface-manager has no luna method for cursor visibility (only a Wayland `set_cursor_visibility` request).
-- **Back on Home**: Home gets keyCode 461 like the Settings page; `goBack()` calls `/api/back`, which relaunches `/tmp/lastapp` (kept by `lastapp.sh` from SAM's foreground subscription). Verified with an injected key only.
+- **Back on Home**: Home gets keyCode 461 like the Settings page. Since 2026-11-04 (owner's choice on the C9) Home ignores Back; `/api/back` (relaunch `/tmp/lastapp`) still exists for backchain.sh.
 - Python 2.7 on the TV has `json`: handy for parsing luna replies in scripts.
 
 ### Round 7 facts (verified on the dev TV, webOS 4.5)
