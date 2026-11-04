@@ -1,5 +1,21 @@
 [
   {
+    "v": "2026.11.04.1",
+    "date": "2026-11-04",
+    "title": "Accueil plus joli, appui long et bouton Éco",
+    "notes": [
+      "Les favoris sont de grands carrés et chaque icône remplit sa case, avec la couleur de l'app, comme chez LG.",
+      "Nouveau : un appui long sur OK sur une app fait apparaître une étoile (favori), une corbeille (désinstaller ou masquer) et des flèches pour la déplacer.",
+      "Les apps masquées se remettent dans Réglages, Accueil et veille, Apps masquées.",
+      "Nouveaux boutons en haut de l'accueil : Thème (le pinceau) pour changer de thème, et Éco pour baisser la luminosité le soir. Le bouton Entrées est parti : la touche Entrée de la télécommande fait pareil.",
+      "Retour maintenu dans une app la ferme vraiment et revient à l'accueil, sans relancer l'app derrière.",
+      "Dans Réglages, OK sur un choix ouvre la liste au lieu de passer au suivant ; le panneau n'est plus transparent.",
+      "Thèmes : Aurore a de vrais rubans de lumière nets qui bougent, Bleu nuit a une étoile filante, Azion est un gris uni sans bandes.",
+      "YouTube AdFree a une vraie icône sur l'accueil.",
+      "Pas encore vérifié : la désinstallation depuis la corbeille, et si le mode Éco reste actif sur toutes les entrées."
+    ]
+  },
+  {
     "v": "2026.11.03.1",
     "date": "2026-11-03",
     "title": "Réglages en français et choix des favoris",

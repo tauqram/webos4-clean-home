@@ -359,3 +359,18 @@ Tested: poweron app destination (HDMI 1 -> Netflix), backlight 100 seeded on all
 | French guided installer for Windows (double-click) | `Installer-TV.cmd`, `tools/installer-sam.sh` | PC side only |
 
 Verified only in a desktop Chromium with mock data (screenshots); `tools/check.sh` has not run on the C9 yet.
+
+## Release 2026.11.04.1 (2026-11-04, Sam's C9: deployed from branch `pending-tv-fixes` and used on the TV by the owner)
+
+| What | Where | Undo |
+|---|---|---|
+| hosts apply counts names inside the begin/end block; `ram_sync` creates `launcher/photos` (fresh install fell back to flash) | `tv/debloat.sh`, `tv/common.sh` | revert the commit |
+| Square favourites painted with LG's iconColor; icons fill the tile (inset only for `CFG.iconInset`, Alexa); own icon for YouTube AdFree (`CFG.iconByTitle`) | `tv/launcher/app.js`, `index.html` | revert the commit |
+| Long press OK (0.7 s, action on key release) = edit mode: star (favourite), bin (uninstall if `removable`, or hide), ◀ ▶ move (`S.order`); Settings row "Apps masquées" | `app.js`; `tv/api.sh` `/api/uninstall` (loopback only, refuses system ids and non-removable apps, `appInstallService/remove`) | hidden apps: Settings -> Apps masquées; uninstalled apps: LG Content Store |
+| Header: Thème (brush) and Éco (`picture.energySaving`) buttons, Entrées removed | `index.html`, `app.js` | revert the commit; Éco: set back to Désactivée |
+| Back held in an app closes it and goes Home; Home ignores the rest of that key (`/tmp/back-held`, 4 s) | `tv/keywatch.py` (new HOLD event), `tv/backchain.sh`, `tv/api.sh` `/api/back`, `app.js` | Settings -> Télécommande -> Quitter une app avec Retour; or revert |
+| Opaque Settings rail, OK on a choice row opens a list, smoother header focus, crisp SVG Aurore ribbons, Bleu nuit shooting star, flat Azion | `index.html`, `app.js` | revert the commit |
+
+Verified by the owner on the TV (photos): favourites, icons, edit mode, Éco, themes, header. NOT verified: `/api/uninstall` on webOS 4.5,
+whether energySaving set from Home applies to every input, the held-Back fix with the real remote, `tools/check.sh` on the C9.
+`tools/test-init.sh` fails in the build container only because it has real `initctl`/`systemctl` on the PATH (init.sh and the test are unchanged).
