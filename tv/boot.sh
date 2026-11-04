@@ -15,6 +15,8 @@ sleep 2
 FG0=$(lun luna://com.webos.applicationManager/getForegroundAppInfo '{}' | sed -n 's/.*"appId" *: *"\([^"]*\)".*/\1/p' | head -1)
 # our own start-up screen over LG's Home (only when LG's Home is what would show); home-on.sh removes it the moment our Home is ready
 sh "$D/cover.sh" show >/dev/null 2>&1
+# power-on choice = our Home (the default): make sure LG's own "Show Home when the TV turns on" is on too, so the next boot starts on Home, not on the last input
+case "$(cat "$STATE/poweron.conf" 2>/dev/null)" in ''|home) lun luna://com.webos.settingsservice/setSystemSettings '{"category":"general","settings":{"homeAutoLaunch":"on"}}' >/dev/null;; esac
 [ -e "$STATE/backlight.orig" ] && sh "$D/backlight.sh" restore      # a screensaver dim must never survive a reboot
 # Only what must be in place before our Home starts goes first (the pointer pictures and the compositor patch, which restarts the compositor); every other switch that is ON
 # in Settings -> Services & privacy (state/svc.conf, defaults in services.tsv) is applied right after Home is up. That gets our Home on screen about 15 s sooner.

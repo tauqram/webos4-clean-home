@@ -1064,8 +1064,6 @@ function edClose(){ mpop('editor'); $('editor').className = ''; $('ghost').inner
 
 /* ================= input ================= */
 var KEYS = {37: 'L', 38: 'U', 39: 'R', 40: 'D'};
-// Back on Home returns to the app / input you were in before Home (the TV side remembers it: lastapp.sh)
-function goBack(){ api('/api/back', function(err, j){ if (err) return toast('Impossible de joindre la TV'); if (!j || (!j.back && !j.held)) toast('Rien à quoi revenir pour l’instant'); }); }
 function onKey(e){
   var k = e.keyCode, wasSaver = saverOn;
   activity();
@@ -1083,7 +1081,7 @@ function onKey(e){
   if (m === 'settings') { settingsKey(k, e); e.preventDefault(); return; }
   if (m === 'tedit') { tedKey(k, e); e.preventDefault(); return; }
   if (SETMODE) return;
-  if (k === 461 || k === 27 || k === 8) { e.preventDefault(); if (e.repeat || Date.now() - shownAt < 1500) return; goBack(); return; }      // a held Back (repeats) or one that arrives as Home appears belongs to the app that was just left
+  if (k === 461 || k === 27 || k === 8) { e.preventDefault(); return; }      // Back on Home does nothing (owner's choice): it used to reopen the last app or input (HDMI 1)
   if (KEYS[k]) { move(KEYS[k]); e.preventDefault(); }
   else if (k === 13) {
     e.preventDefault(); if (e.repeat || okT) return;
@@ -1222,9 +1220,8 @@ document.addEventListener('click', function(e){
 
 /* ================= lifecycle ================= */
 function netLabel(){ api('/api/net', function(err, j){ if (!j || !j.returnValue) return; $('netlabel').textContent = (j.wired && j.wired.state === 'connected') ? 'Ethernet' : (j.wifi && j.wifi.state === 'connected') ? 'Wi-Fi' : 'Hors ligne'; }); }
-var appsAt = 0, shownAt = 0;
+var appsAt = 0;
 function onShow(){
-  shownAt = Date.now();
   tick(); activity();
   api('/api/saver/take', function(err, j){ if (j && j.take && S.saver.on) saverStart(); });      // LG's own screensaver was replaced by ours (saver-take.sh)
   if (Date.now() - appsAt > 60000) { appsAt = Date.now(); loadApps(function(ok){ if (ok) focusItem(Math.min(1, rows.length - 1), 0); }); }
