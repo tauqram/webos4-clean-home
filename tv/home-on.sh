@@ -55,6 +55,8 @@ grep -q '^admanager=off' "$STATE/svc.conf" 2>/dev/null || sh "$D/debloat.sh" swe
     if [ $((tick % 15)) = 0 ] && mkdir /tmp/tvd-sweep.lock 2>/dev/null; then
       ( sh "$D/debloat.sh" sweep >/dev/null 2>&1; ( setsid sh "$D/settings-hook.sh" start </dev/null >/dev/null 2>&1 & ); ( setsid sh "$D/lastapp.sh" start </dev/null >/dev/null 2>&1 & ); ( setsid sh "$D/pointer.sh" watch </dev/null >/dev/null 2>&1 & ); ( setsid sh "$D/backchain.sh" start </dev/null >/dev/null 2>&1 & ); ( setsid sh "$D/pointerhide.sh" start </dev/null >/dev/null 2>&1 & ); sleep 10; sh "$D/health.sh" log; rmdir /tmp/tvd-sweep.lock ) </dev/null >/dev/null 2>&1 &
     fi
+    # full shutdown at night (Settings -> Power & timers; nightoff.sh): Quick Start+ follows the clock, checked once a minute
+    [ $((tick % 3)) = 1 ] && ( sh "$D/nightoff.sh" tick >/dev/null 2>&1 ) </dev/null >/dev/null 2>&1 &
     [ $((tick % 180)) = 0 ] && ( sh "$D/blocklist.sh" maybe-update >/dev/null 2>&1 ) </dev/null >/dev/null 2>&1 &
     # LG's own screensaver (no signal on an input, ...) is swapped for ours by two watchers (settings-hook.sh, lastapp.sh); this third, independent look every 20 s means a watcher that
     # died, or was restarted at the wrong moment, can never leave LG's saver on screen for long (saver-take.sh ignores repeats within 10 s)

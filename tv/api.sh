@@ -189,6 +189,7 @@ except Exception: print('no')" 2>/dev/null)
   /api/backchain) case "$(qget v)" in off) touch "$STATE/backchain-off";; on) rm -f "$STATE/backchain-off";; esac
                 hdr "200 OK"; [ -e "$STATE/backchain-off" ] && echo '{"chain":"off"}' || echo '{"chain":"on"}';;
   /api/poweron) v=$(qget v); hdr "200 OK"; if [ -n "$v" ]; then r=$(timeout -t 15 sh "$D/poweron.sh" set "$v" </dev/null 2>/dev/null); [ -n "$r" ] && echo "$r" || echo '{"error":"bad destination"}'; else sh "$D/poweron.sh" get </dev/null; fi;;
+  /api/nightoff) v=$(qget v); hdr "200 OK"; if [ -n "$v" ]; then r=$(timeout -t 15 sh "$D/nightoff.sh" set "$v" </dev/null 2>/dev/null); [ -n "$r" ] && echo "$r" || echo '{"error":"bad hours"}'; else printf '{"night":"%s"}' "$(sh "$D/nightoff.sh" win)"; fi;;
   /api/brightness) v=$(qget v); [ -n "$v" ] && log "api: brightness set to $v (from the Settings screen or a script)"; if [ "$v" = off ]; then ( setsid sh "$D/brightness.sh" set off </dev/null >/dev/null 2>&1 & ); elif [ -n "$v" ]; then timeout -t 60 sh "$D/brightness.sh" set "$v" </dev/null >/dev/null 2>&1; fi
                 hdr "200 OK"; printf '{"brightness":"%s"}' "$(sh "$D/brightness.sh" status)";;
   /api/pointerhide) case "$(qget v)" in on) rm -f "$STATE/pointerhide-off"; ( setsid sh "$D/pointerhide.sh" start </dev/null >/dev/null 2>&1 & );; off) touch "$STATE/pointerhide-off"; sh "$D/pointerhide.sh" stop >/dev/null 2>&1;; esac

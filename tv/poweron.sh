@@ -14,7 +14,7 @@ dest() { d=$(cat "$CONF" 2>/dev/null); case $d in home|last|hdmi1|hdmi2|hdmi3|hd
 target() { case $1 in home) echo "$HOME_ID";; hdmi[1-4]) echo "com.webos.app.$1";; app:*) echo "${1#app:}";; *) echo "";; esac; }
 fgid() { cat /tmp/fgnow 2>/dev/null; }
 case ${1:-get} in
-  get) printf '{"dest":"%s"}' "$(dest)";;
+  get) printf '{"dest":"%s","night":"%s"}' "$(dest)" "$(sh "$D/nightoff.sh" win 2>/dev/null || echo off)";;
   set) case $2 in app:*) okid "${2#app:}" || { echo '{"error":"bad app id"}'; exit 1; };; esac
        case $2 in home|last|hdmi1|hdmi2|hdmi3|hdmi4|app:*) echo "$2" > "$CONF"; log "poweron: destination $2"
          # LG's own switch follows: on only for Home
