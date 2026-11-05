@@ -387,3 +387,17 @@ Verified on the C9 at 21:35: deploy OK, Home cycle OK, getSystemTime gives the r
 Tested in the build container: nightoff.sh window parsing and the on/off decisions for 22-7 and 0-7 against a fake luna (hours 12, 21, 22, 23, 0, 6, 7, 8), the one-line-per-hour standby log; Settings page rendered with mock data.
 NOT verified on the TV: the local hour from `com.palm.systemservice/time/getSystemTime` (falls back to `date`), that LG honours a quickStartMode change made a minute before power-off,
 and whether our loops keep running in Quick Start+ standby (the log line "nightoff: still running at ..h while the TV is in ..." answers that; if they do, a TV left in standby at 22h could later be powered down for real: not built).
+
+## Release 2026.11.05.1 (2026-11-05, Sam's C9: new Home look; on branch `claude/project-thread-kwaseh`, NOT on main until Sam has deployed and checked it)
+
+| What | Where | Undo |
+|---|---|---|
+| "Tout visible" Home: the big title line is gone (it comes back as a hint at the bottom while editing an app); the name shows under the focused app, bigger (1.9 rem); favourites 15 rem squares, apps 8.6 rem; row titles 1.6 rem | `tv/launcher/index.html` (last style block), `app.js` (`tedDraw` sets `body.editing`) | revert the commit |
+| Large centred clock (19 rem) with the date and a short weather line centred above it (`#dline`, `#wmini`); `#weather` kept but hidden | `index.html` header markup + CSS, `app.js` `wxRender` | revert the commit |
+| Clock font setting: Settings -> Accueil et veille -> Police de l'heure (`ui.clockFont` = outfit / verre / bricolage, body class `cf-*`); fonts Outfit 600, Inter 800, Bricolage Grotesque 800 (SIL OFL, licences in `launcher/fonts/`, about 60 KB together, copied to RAM by `ram_sync` like Inter) | `app.js` (`CLOCK_FONTS`, `applyUi`, DEFAULTS), `launcher/fonts/` | revert the commit |
+| Header buttons are round, icon only; the focused one spells its name under itself (a pill growing sideways ran into the centred date line) | `index.html` | revert the commit |
+| Dark hill with an aurora rim behind the clock on Aurore and Bleu nuit (`.hill` in `#themebg`, an SVG data URI; hidden with gallery photos like the rest of the theme) | `index.html` | revert the commit |
+| Update pill moved to the bottom centre (it covered the hero title before) | `index.html` | revert the commit |
+
+Tested in the build container only: preview of Home (Aurore, Bleu nuit, Azion; the three fonts), focus on a header button, focus in the grid, long-press edit mode, Settings row, screensaver unchanged; `node --check app.js`, `node tools/release-check.js`.
+NOT verified on the TV: the look on the real panel with real LG icons, Chromium 53 rendering of `-webkit-background-clip:text` (glass digits), scroll position of the lower app rows, the edit hint over the last row. Mockups and CSS sketches: project files `webos4-clean-home-apercu/pistes-2026-11-05/`.

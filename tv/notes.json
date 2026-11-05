@@ -1,5 +1,18 @@
 [
   {
+    "v": "2026.11.05.1",
+    "date": "2026-11-05",
+    "title": "Nouvel accueil : grande heure et tout à l'écran",
+    "notes": [
+      "L'heure s'affiche en grand au milieu du haut de l'écran, avec la date et la météo sur une ligne juste au-dessus, comme sur l'écran verrouillé d'un iPhone.",
+      "Nouveau : Réglages, Accueil et veille, « Police de l'heure » pour choisir entre trois styles d'heure (ronde, épaisse avec effet verre, ou avec du caractère).",
+      "Le grand titre au-dessus des applis est parti : le nom de l'app choisie s'écrit maintenant en dessous, en plus gros. Les favoris et les applis sont plus grands et tiennent sur l'écran.",
+      "Les boutons en haut à droite sont devenus des ronds avec seulement l'icône ; leur nom apparaît dessous quand on les sélectionne.",
+      "Sur les thèmes Aurore et Bleu nuit, une colline sombre se dessine derrière l'heure.",
+      "L'annonce « mise à jour prête » s'affiche en bas de l'écran et ne cache plus le haut."
+    ]
+  },
+  {
     "v": "2026.11.04.2",
     "date": "2026-11-04",
     "title": "Retour sur l'accueil, démarrage et arrêt la nuit",

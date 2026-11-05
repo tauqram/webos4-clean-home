@@ -29,7 +29,7 @@ var DEFAULTS = {
   bg: {on: true, everyMin: 10},
   saver: {on: true, idleMin: 2, photos: true, slideSec: 300, weather: true, dim: 20, level: 15, fx: 'theme', clock: true},
   theme: 'auto',
-  ui: {hideCursor: true},
+  ui: {hideCursor: true, clockFont: 'outfit'},
   dock: ['netflix','youtube.leanback.v4','amazon','com.disney.disneyplus-prod'],
   order: [],      // the order of the app grid chosen on Home (long press OK, then left / right); apps not listed keep LG's order, after these
   hide: ['webos.day','com.webos.app.homeconnect','com.webos.app.home','com.webos.app.fullhome']
@@ -85,7 +85,8 @@ function saveSettings(){
 }
 function setPath(path, v){ var p = path.split('.'), o = S; for (var i = 0; i < p.length - 1; i++) o = o[p[i]]; o[p[p.length - 1]] = v; saveSettings(); settingsChanged(path); }
 function getPath(path){ var p = path.split('.'), o = S; for (var i = 0; i < p.length; i++) o = o[p[i]]; return o; }
-function applyUi(){ cls(document.body, 'nocursor', !!(S.ui && S.ui.hideCursor)); if (window.Theme && !SETMODE) Theme.apply(S.theme); }
+var CLOCK_FONTS = [['outfit', 'Ronde (Outfit)'], ['verre', 'Épaisse, effet verre'], ['bricolage', 'Avec du caractère (Bricolage)']];
+function applyUi(){ cls(document.body, 'nocursor', !!(S.ui && S.ui.hideCursor)); var cf = (S.ui && S.ui.clockFont) || 'outfit'; CLOCK_FONTS.forEach(function(f){ cls(document.body, 'cf-' + f[0], f[0] === cf); }); if (window.Theme && !SETMODE) Theme.apply(S.theme); }
 function settingsChanged(path){
   if (SETMODE) { if (path.indexOf('ui.') === 0) applyUi(); return; }
   if (path.indexOf('weather.') === 0) wxLoad(true);
@@ -148,6 +149,7 @@ function wxRender(){
   $('wicon').innerHTML = WX[d[0]] || '';
   $('wtemp').innerHTML = Math.round(wx.temp) + '°<small>' + d[1] + '</small>';
   $('wdesc').textContent = hl + wx.place;
+  var wm = $('wmini'); if (wm) { wm.innerHTML = (WX[d[0]] || '') + Math.round(wx.temp) + '° ' + d[1]; wm.className = 'on'; }
   $('weather').className = 'on';
   var w = $('sinfo').childNodes[2];
   w.innerHTML = (WX[d[0]] || '') + '<span>' + Math.round(wx.temp) + '° ' + d[1] + '</span><span class="p">' + hl + wx.place + '</span>';
@@ -606,7 +608,8 @@ cats = [
   ]; }},
   {id: 'home', name: 'Accueil et veille', icon: 'home', title: 'Accueil et veille', desc: 'Photos de fond, écran de veille et horloge.', build: function(){ return [
     chc('Thème', 'Fond, couleur d’accent et animation de veille. Automatique = le thème de la saison quand il y en a un', window.Theme ? Theme.options() : [['auto', 'Automatique']], function(){ return S.theme || 'auto'; }, function(v){ setPath('theme', v); }),
-    act('Favoris', 'Les grandes cartes en haut de l’accueil (6 au maximum). Plus simple : sur l’accueil, appui long sur OK sur une app, puis ▲ et l’étoile. ◀ ▶ la déplacent.', function(){ favPanel(0); }, S.dock.length + ' app' + (S.dock.length > 1 ? 's' : '') + '  ▶'),
+    chc('Police de l’heure', 'Le style de la grande heure de l’accueil', CLOCK_FONTS, function(){ return (S.ui && S.ui.clockFont) || 'outfit'; }, function(v){ setPath('ui.clockFont', v); }),
+    act('Favoris', 'Les grands carrés en haut de l’accueil (6 au maximum). Plus simple : sur l’accueil, appui long sur OK sur une app, puis ▲ et l’étoile. ◀ ▶ la déplacent.', function(){ favPanel(0); }, S.dock.length + ' app' + (S.dock.length > 1 ? 's' : '') + '  ▶'),
     act('Apps masquées', 'Les apps retirées de l’accueil avec la corbeille (appui long sur OK). OK sur une app pour la remettre.', function(){ hiddenPanel(0); }, userHidden().length + '  ▶'),
     tgl('Photo en fond de l’accueil', 'Utilise les photos de ta galerie', function(){ return S.bg.on; }, function(b){ setPath('bg.on', b); }),
     chc('Changer de fond toutes les', '', [[5,'5 min'],[10,'10 min'],[20,'20 min'],[30,'30 min'],[60,'1 heure']], function(){ return S.bg.everyMin; }, function(v){ setPath('bg.everyMin', v); }),
@@ -1110,6 +1113,7 @@ function tedTile(){ for (var r = 0; r < rows.length; r++) for (var c = 0; c < ro
 function tedDraw(){
   [].forEach.call(document.querySelectorAll('.tile.nbl,.tile.nbr'), function(n){ cls(n, 'nbl', false); cls(n, 'nbr', false); });
   [].forEach.call(document.querySelectorAll('.tile.edit'), function(n){ cls(n, 'edit', false); cls(n, 'onbtn', false); [].slice.call(n.querySelectorAll('.tmenu,.tarr')).forEach(function(x){ n.removeChild(x); }); });
+  cls(document.body, 'editing', !!ted);
   if (!ted) return;
   var p = tedTile(); if (!p) { tedClose(); return; }
   focusItem(p[0], p[1]); var t = rows[p[0]][p[1]], fav = S.dock.indexOf(ted.id) >= 0, sib = tedSiblings();

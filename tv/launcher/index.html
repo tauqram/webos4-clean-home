@@ -367,15 +367,70 @@ body.th-azion .big .ring{border-radius:2rem}
 body.th-azion .big .tint{display:block;opacity:.16}
 body.th-azion .big.foc .tint{opacity:.24}
 body.th-azion .tile .ring{border-color:rgba(236,235,232,.7)}
+/* ===== 2026-11 « tout visible » + grande heure (Sam): no big title line, the name shows under the focused app; the date and the weather
+   in one centred line above a large clock (font chosen in Settings: Outfit / Inter « verre » / Bricolage, SIL OFL, bundled in fonts/);
+   round icon-only header buttons that spell their name when focused; a dark hill behind the clock on Aurore and Bleu nuit.
+   Chromium 53 safe: no grid, no flex gap, no backdrop-filter; -webkit-background-clip:text for the glass digits. ===== */
+@font-face{font-family:"ClockOutfit";src:url("fonts/outfit-latin-600-normal.woff2") format("woff2");font-weight:600;font-style:normal}
+@font-face{font-family:"ClockInter";src:url("fonts/inter-latin-800-normal.woff2") format("woff2");font-weight:800;font-style:normal}
+@font-face{font-family:"ClockBricolage";src:url("fonts/bricolage-grotesque-latin-800-normal.woff2") format("woff2");font-weight:800;font-style:normal}
+#header{position:relative;z-index:1;display:block;height:24rem;padding:0 6rem}
+#clock{position:absolute;left:0;right:0;top:3.4rem;display:block;text-align:center;pointer-events:none}
+#dline{font-size:1.9rem;font-weight:500;color:#e8eaf0;white-space:nowrap;line-height:2.6rem}
+#dline #date{display:inline;font-size:1.9rem;color:#e8eaf0;margin:0;padding:0;border:0;font-weight:500}
+#wmini{display:none}
+#wmini.on{display:inline}
+#wmini.on:before{content:"";display:inline-block;width:.45rem;height:.45rem;border-radius:50%;background:var(--accent);margin:0 1.2rem .35rem}
+#wmini svg{width:2.4rem;height:2.4rem;vertical-align:-.5rem;margin:0 .5rem 0 .1rem}
+#time{display:block;font-family:"ClockOutfit","Inter",sans-serif;font-weight:600;font-size:19rem;line-height:1;letter-spacing:-.4rem;margin-top:.4rem;color:#f4f6fb}
+#time small{font-size:4rem;letter-spacing:0;margin-left:1rem;color:#c9ced8}
+body.cf-verre #time{font-family:"ClockInter","Inter",sans-serif;font-weight:800;letter-spacing:-.8rem;color:#e9ecf2;background:linear-gradient(180deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.62) 55%,rgba(255,255,255,.8) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+body.cf-bricolage #time{font-family:"ClockBricolage","Inter",sans-serif;font-weight:800;letter-spacing:-.6rem}
+body.hasbg #dline,body.hasbg #time{text-shadow:0 .2rem 1.6rem rgba(0,0,0,.55)}
+body.hasbg.cf-verre #time{text-shadow:none}
+body.th-azion #time{color:#ecebe8}
+#weather{display:none !important}
+#right{position:absolute;right:6rem;top:3.4rem}
+.hbtn{width:5.4rem;height:5.4rem;padding:0;margin:0 0 0 1.2rem;border-radius:2.7rem;justify-content:center;background:rgba(255,255,255,.06)}
+.hbtn svg{margin:0;width:2.2rem;height:2.2rem}
+.hbtn span{display:none}
+.hbtn.foc,body.hasbg .hbtn.foc{background:var(--accent);border-color:var(--accent)}
+body.th-azion .hbtn.foc{background:#ecebe8;border-color:#ecebe8}
+/* the focused button spells its name just below itself (a pill that grew sideways ran into the centred date line) */
+.hbtn.foc span{display:block;position:absolute;left:50%;top:100%;margin-top:1rem;-webkit-transform:translateX(-50%);transform:translateX(-50%);white-space:nowrap;font-size:1.4rem;font-weight:600;color:#fff;text-shadow:0 .1rem .6rem rgba(0,0,0,.7)}
+/* the big title line is gone; while editing an app (long press OK) it comes back as a hint at the bottom of the screen */
+#hero{position:fixed;left:0;right:0;bottom:2.6rem;height:auto;padding:0;z-index:8;display:none;text-align:center;pointer-events:none}
+body.editing #hero{display:block}
+body.editing #updpill,body.editing .tile.foc .nm{display:none}
+body.editing #htitle{display:inline;font-size:1.7rem;font-weight:600;letter-spacing:0;padding:.8rem 0 .8rem 2rem;border-radius:2rem 0 0 2rem;background:rgba(10,12,18,.9)}
+body.editing #hsub{display:inline;font-size:1.5rem;margin:0;padding:.95rem 2rem .95rem 1.2rem;border-radius:0 2rem 2rem 0;background:rgba(10,12,18,.9);color:#d7dce6;opacity:1}
+#view > .row{position:relative;z-index:2}
+.rowlabel{font-size:1.6rem;letter-spacing:.22rem;text-transform:uppercase;font-weight:600;color:#c3cad8;margin:0 0 1.3rem .2rem}
+body.th-azion .rowlabel{color:#c4c3bd}
+#dock{margin-bottom:3.4rem;padding-top:.4rem}
+.big{width:15rem;margin-right:3.2rem;align-items:center}
+.big .ic,body.th-azion .big .ic{width:15rem;height:15rem;border-radius:3.2rem}
+.big .ring,body.th-azion .big .ring{border-radius:3.7rem}
+.sm{width:8.6rem;margin:0 2.4rem 2.6rem 0}
+.sm .ic{width:8.6rem;height:8.6rem;border-radius:2.1rem}
+.sm .ring{border-radius:2.6rem}
+.big .nm,.sm .nm{display:block;opacity:0;max-width:none;overflow:visible;font-size:1.9rem;font-weight:500;color:#fff;margin-top:1.6rem;text-align:center;align-self:center;white-space:nowrap}
+.tile.foc .nm{opacity:1;transform:translateY(.4rem)}
+.tile.foc .ic{transform:scale(1.1)}
+.big .tarr{height:15rem}.sm .tarr{height:8.6rem}
+#updpill{left:50%;top:auto;bottom:2.6rem;-webkit-transform:translateX(-50%);transform:translateX(-50%)}
+/* a dark hill behind the clock, with a thin rim of aurora light (Aurore, Bleu nuit) */
+.hill{position:absolute;display:none;left:0;top:0;width:100%;height:100%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1920 1080' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='f' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%230b1220'/%3E%3Cstop offset='.12' stop-color='%23060910'/%3E%3Cstop offset='.4' stop-color='%2305070c'/%3E%3C/linearGradient%3E%3ClinearGradient id='r' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%237cf5d0' stop-opacity='0'/%3E%3Cstop offset='.35' stop-color='%237cf5d0' stop-opacity='.55'/%3E%3Cstop offset='.6' stop-color='%239b8cff' stop-opacity='.5'/%3E%3Cstop offset='1' stop-color='%239b8cff' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 372 C200 360 340 368 480 352 C580 340 640 318 720 304 C780 296 820 322 880 328 C950 334 990 286 1060 268 C1120 254 1160 296 1220 318 C1300 344 1420 340 1560 356 C1700 370 1820 362 1920 366 V1080 H0Z' fill='url(%23f)'/%3E%3Cpath d='M0 372 C200 360 340 368 480 352 C580 340 640 318 720 304 C780 296 820 322 880 328 C950 334 990 286 1060 268 C1120 254 1160 296 1220 318 C1300 344 1420 340 1560 356 C1700 370 1820 362 1920 366' fill='none' stroke='url(%23r)' stroke-width='2.5'/%3E%3C/svg%3E") no-repeat 0 0;background-size:100% 100%}
+body.th-aurore .hill,body.th-bleunuit .hill{display:block}
 </style>
 </head>
 <body>
-<div id="themebg"><div class="tb1"></div><div class="tb2"></div><div class="tb3"></div></div>
+<div id="themebg"><div class="tb1"></div><div class="tb2"></div><div class="tb3"></div><div class="hill"></div></div>
 <div id="bgA" class="bgl"></div><div id="bgB" class="bgl"></div><div id="scrim2"></div>
 <div id="glowA"></div><div id="glowB"></div>
 <div id="view">
   <div id="header">
-    <div id="clock"><div id="time"></div><div id="date"></div></div>
+    <div id="clock"><div id="dline"><span id="date"></span><span id="wmini"></span></div><div id="time"></div></div>
     <div id="right">
       <div id="weather"><span id="wicon"></span><div><div id="wtemp"></div><div id="wdesc"></div></div></div>
       <div class="hbtn" id="b-theme"><svg viewBox="0 0 24 24"><path d="M18.4 2.6a2 2 0 0 1 2.9 2.9L12 14.8 9.2 12z"/><path d="M8.2 13.2c-2 0-3.4 1.5-3.4 3.4 0 1.3-.9 2.3-2.3 2.6 1 1.3 2.6 2 4.3 2 2.6 0 4.6-2 4.6-4.6z"/></svg><span>Thème</span><div class="ring"></div></div>
