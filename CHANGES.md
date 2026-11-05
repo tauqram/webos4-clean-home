@@ -387,3 +387,19 @@ Verified on the C9 at 21:35: deploy OK, Home cycle OK, getSystemTime gives the r
 Tested in the build container: nightoff.sh window parsing and the on/off decisions for 22-7 and 0-7 against a fake luna (hours 12, 21, 22, 23, 0, 6, 7, 8), the one-line-per-hour standby log; Settings page rendered with mock data.
 NOT verified on the TV: the local hour from `com.palm.systemservice/time/getSystemTime` (falls back to `date`), that LG honours a quickStartMode change made a minute before power-off,
 and whether our loops keep running in Quick Start+ standby (the log line "nightoff: still running at ..h while the TV is in ..." answers that; if they do, a TV left in standby at 22h could later be powered down for real: not built).
+
+## Release 2026.11.05.1 (2026-11-05, Sam's C9: night shutdown catch-up for a TV already in quick-start standby at FROM)
+
+Problem: LG reads `option.quickStartMode` only when the TV is turned off. A TV switched off at 21h (quick start still on) stays in quick-start standby the whole night, and the
+2026-11-04/05 logs never showed a "nightoff: still running ... while the TV is in ..." line (the TV sat in standby from the afternoon to 23h), so our loops most likely do not run
+during that standby (the SoC is suspended): nothing can power it down at 22h.
+
+| What | Where | Undo |
+|---|---|---|
+| Catch-up restart: every on-minute `nightoff.sh tick` writes `/tmp/nightoff.seen` (epoch, cpu0 awake seconds from `/proc/stat`, local second of day, quick start). When the TV comes back (`lastapp.sh` power Active -> `nightoff.sh wake`, before `poweron.sh go wake`; also the next tick) and ALL hold: power state Active, last on-minute >= 10 min ago, the TV slept (>= 10 min without cpu0 time) or a standby tick was seen, quick start was on at the last on-minute, FROM o'clock lies in the gap, no catch-up in the last 30 min (`state/nightoff.reboot`): log it and restart once (`sleep/shutdown/machineReboot`, same call as revert.sh / Settings). Lock `/tmp/nightoff.lock` so wake and tick never both act | `tv/nightoff.sh`, `tv/lastapp.sh`, Settings text in `app.js` | `touch state/nightoff-catchup-off` (catch-up only) or `sh nightoff.sh set off` |
+
+Tested in the build container against a fake luna / clock / `/proc/stat`: suspended 20:30 -> 7:30 restarts once; a second wake within 30 min does not; 20:30 -> 21:30 does nothing;
+watchdog stopped across 22h with the TV awake does nothing; quick start already off does nothing; standby ticks (loops running in standby) then wake at 6h restarts; wake in a
+non-Active state does nothing; DISABLE does nothing; 23:30 -> 7:00 (no FROM in the gap) does nothing.
+NOT verified on the TV: that cpu0's `/proc/stat` counters stop during quick-start standby (if they do not, the catch-up needs a standby tick instead), the power-state names
+seen on a real quick-start wake (lastapp.sh reacts to *tandby*/*uspend*/Off; the tick is the fallback within a minute), and that machineReboot from a fresh wake comes back on screen.

@@ -1,5 +1,14 @@
 [
   {
+    "v": "2026.11.05.1",
+    "date": "2026-11-05",
+    "title": "Arrêt de nuit, même depuis la veille",
+    "notes": [
+      "Arrêt complet la nuit : si la télé était déjà éteinte en veille rapide avant le début de la nuit, elle redémarre une fois la prochaine fois qu'on l'allume, pour repartir à neuf comme après un vrai arrêt. Cela prend environ une minute, une seule fois.",
+      "Si on l'allume avant le début de la nuit, rien ne change : elle s'allume en deux secondes. Encore en test sur une seule télé."
+    ]
+  },
+  {
     "v": "2026.11.04.2",
     "date": "2026-11-04",
     "title": "Retour sur l'accueil, démarrage et arrêt la nuit",

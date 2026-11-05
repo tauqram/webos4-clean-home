@@ -208,6 +208,10 @@ Facts verified on webOS 4.5 (re-verify on other versions):
 - **LG's memory manager** is `memchute` (`com.webos.memorymanager`, `/etc/palm/memorymanager-conf.json`: priority groups, `KeepOnLaunch`, `EfsTarget` includes YouTube). It evicts background apps by priority when memory is short; closing is reported as `close ... reason: memoryReclaim`. `/etc/palm/preload` policy: Netflix, Amazon, Browser, Tips, Assistant preload off (our `preload` item), YouTube `semi-full` and the HDMI input apps stay on.
 - BusyBox has no `paste`, no `grep --line-buffered`, no `ls --time-style`, no `time` keyword; `nice`, `setsid`, `usleep` exist. In `sh -s < file` tests the pipeline `luna-send -i ... | while read` delivers one compact JSON line per message.
 
+### Night shutdown catch-up (2026-11-05, Sam's C9; partly unverified)
+
+- LG reads `option.quickStartMode` only at power-off; a TV already in quick-start standby at FROM stays there all night. No "still running in standby" line was ever logged, so our loops probably stop during that standby. `nightoff.sh` therefore restarts the TV once when it is turned on again after sleeping through FROM (`catchup()`, conditions and tests in CHANGES.md 2026.11.05.1). Sleep is measured as wall time minus cpu0 time in `/proc/stat` (`/proc/uptime` keeps counting during suspend). Off switch: `state/nightoff-catchup-off`.
+
 ### Round 17 facts (verified on the dev TV, webOS 4.5)
 
 - **Backlight semantics**: `state/brightness` (Settings -> Picture / Quick settings, one slider, 5-100, debounced 0.7 s) = the backlight enforced on EVERY input x app x picture mode by brightness.sh; set to 100 on the dev TV at the owner's request (419 contexts, 38 s). LG's own per-input Backlight row is hidden (the same slider replaces it), LG's picture `brightness` is shown as Black level. The screensaver level is now ABSOLUTE (`saver.level`, default 15 on LG's 0-100 scale, never above the normal one): `backlight.sh dim <level>`, `/api/backlight?v=dim&level=`. A seed interrupted by a newer value now hands over to a fresh seed (it used to leave contexts unseeded when the slider moved twice).
