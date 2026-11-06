@@ -512,3 +512,14 @@ Verified in headless Chromium at 3840x2160 (dpr 2): rendering, steps, fuchsia, n
   watchdog every 20 s (acts only on a second sighting 15 s apart). Proven by hand on the C9 (Power instant, wake in 2-3 s); the automatic path is
   tested only against a stubbed `lun` on Linux so far.
 - Undo: previous `tv/saver-take.sh` / `tv/home-on.sh`; or `touch state/saver-lg` (LG's saver stays, no swap, no release needed).
+
+### 2026.11.06.13 - Power fix without touching the screensaver (replaces the visible part of .12)
+- Sam on .12: our screensaver stopped by itself, Home came back, our saver restarted with another look, then LG's saver showed for a moment.
+  Cause: `saver-take.sh release now`, run 2 s after every swap (and by the watchdog while our saver ran), relaunches LG's saver to free tvpower.
+- New `tv/saverdeny.sh` (started by home-on.sh and the 5-min sweep, stopped by home-off.sh / revert.sh): registers with tvpower
+  (`registerScreenSaverRequest {"subscribe":true,"clientName":"tvdebloat"}`, accepted on the C9) and answers `responseScreenSaverRequest`
+  with `ack:false` while Home / our overlays are in front (`/tmp/fgnow`), `ack:true` elsewhere. Every request and answer is logged
+  (`saverdeny:` lines) because the request message has NOT been observed yet (tvpower's `requestScreenSaver` is not callable).
+- `saver-take.sh`: no release right after a swap any more; `release` never runs while `/tmp/saver-on` exists. The watchdog fallback stays.
+- To verify: leave the TV idle on Home for 4 min, then `grep -E 'saverdeny|stuck' state/tv-debloat.log` and `getPowerState` (no `processing`).
+- Undo: `sh saverdeny.sh stop`; previous saver-take.sh / home-on.sh.

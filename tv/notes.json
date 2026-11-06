@@ -1,5 +1,15 @@
 [
   {
+    "v": "2026.11.06.13",
+    "date": "2026-11-06",
+    "title": "Extinction rapide, sans déranger l'écran de veille",
+    "notes": [
+      "Correction de la version précédente : l'écran de veille ne s'interrompt plus tout seul, et l'ancien écran de veille de LG ne doit plus apparaître.",
+      "La télé dit maintenant à LG de ne pas lancer son propre écran de veille quand notre accueil est affiché. C'est ce qui bloquait l'extinction rapide.",
+      "C'est nouveau et encore en observation : si l'extinction redevient lente, dites-le."
+    ]
+  },
+  {
     "v": "2026.11.06.12",
     "date": "2026-11-06",
     "title": "La télé s'éteint de nouveau tout de suite",

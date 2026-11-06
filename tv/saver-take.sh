@@ -9,14 +9,16 @@
 # Quick Start+ on (slow off, slow cold start showing LG's old Home). tvpower refuses turnOnScreen while it is in that state ("power is busy").
 # What works (tools/saver-unstick-test.sh on the C9, 2026-11-06): launch LG's saver once more while our swap looks away: tvpower goes back to plain
 # "Active" within a second and the saver leaves by itself without being seen; Power was instant again and the TV woke in 2-3 s.
-# `now` = right after our own close; without it (the home-on.sh watchdog, every 20 s) only on a second sighting 15 s or more apart, because a real
-# saver launch passes through that state in well under a second.
+# `now` = at once; without it (the home-on.sh watchdog, every 20 s) only on a second sighting 15 s or more apart, because a real saver launch passes
+# through that state in well under a second. Since 2026.11.06.13 this is only the fallback: saverdeny.sh asks tvpower not to start LG's saver while our
+# Home is in front, and release is no longer run right after a swap nor while our own screensaver is on screen (it interrupted it and showed LG's saver).
 . /media/developer/tv-debloat/common.sh
 SAVER=com.webos.app.screensaver
 stuck() { p=$(lun luna://com.webos.service.tvpower/power/getPowerState '{}' | tr -d '\n'); case "$p" in *'"Active"'*) ;; *) return 1;; esac; case "$p" in *'Screen Saver Ready'*|*ScreenSaverReady*) return 0;; esac; return 1; }
 saver_up() { lun luna://com.webos.applicationManager/running '{}' | grep -q "\"id\": *\"$SAVER\""; }
 if [ "$1" = release ]; then
   [ -e "$D/DISABLE" ] && exit 0
+  [ -e /tmp/saver-on ] && exit 0                                   # never while OUR screensaver is on screen: relaunching LG's saver would interrupt it (Sam, .12)
   stuck || { rm -f /tmp/ssr-seen; exit 0; }
   saver_up && exit 0                                               # LG's saver is really there: tvpower is not stuck, the swap will deal with it
   if [ "$2" != now ]; then
@@ -54,5 +56,3 @@ log "saver-take: LG's screensaver appeared, showing ours"
 up > /tmp/saver-now
 lun luna://com.webos.applicationManager/closeByAppId '{"id":"com.webos.app.screensaver"}' >/dev/null
 lun luna://com.webos.applicationManager/launch "{\"id\":\"$HOME_ID\"}" >/dev/null
-# hand tvpower its normal state back (see release above), in the background so the watchers that called us are not held up
-( sleep 2; sh "$0" release now ) </dev/null >/dev/null 2>&1 &
