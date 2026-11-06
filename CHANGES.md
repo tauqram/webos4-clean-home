@@ -578,3 +578,7 @@ Sam saw a flicker and "two savers" (back to Home, then another look). Cause: our
 ### 2026.11.06.23 - No light edge on the focused icon
 
 Sam: the lit top edge serves no purpose; the shadow is enough. Removed `.tile .ic:after` (inset light edge) from `index.html`. Undo: revert the commit.
+
+### 2026.11.06.24 - Aurora moves smoothly; a saver interrupted by the LG swap comes back with the same look
+
+Sam (on .23): the aurora's horizontal drift is jerky, and when the look changes there is a brief flash of Home. Aurora: the layers moved 552 / 1280 one-pixel steps over 80-150 s, i.e. about 7 jumps per second, which reads as stutter; the drift is now a continuous `ease-in-out` translation (GPU composited; the vertical rays may soften by a fraction of a pixel while moving, invisible at that speed). Soie keeps its steps (60 per second, smooth). Swap: the page could stay hidden longer than the 3 s grace while saver-take.sh waits for tvpower and LG's saver (up to about 5 s), so our saver stopped (Home showed) and restarted with the NEXT look. Grace is now 12 s, and a start triggered by `/api/saver/take` passes `keep` to `Theme.saverFx` so the same look comes back. The page logs `saver: page hidden / shown again / back after the LG saver swap / still hidden after 12 s` (in /tmp/launcher-page.log) so the next report can be checked. Tested in headless Chromium with the mock (look kept on a take restart, next look on a normal idle start, aurora timing ease-in-out). Not yet seen on the TV. Undo: revert the commit.

@@ -152,10 +152,11 @@ var ROTATION = ['aurore', 'eclipse', 'soie'], rotIx = Math.floor(Math.random() *
 var running = null, lastName = '';
 // choice: 'auto' (or the old 'theme') = the next of Aurore / Eclipse / Soie each time the saver starts; lowmem: the TV is
 // short of memory, so the lightest look (Eclipse, about 20 MB of pictures at 4K) replaces the two others.
-function saverFx(cv, choice, lowmem){
+function saverFx(cv, choice, lowmem, keep){
   saverFxStop();
   var t = current || resolve('auto'), name = choice;
-  if (!name || name === 'theme' || name === 'auto') { rotIx = (rotIx + 1) % ROTATION.length; name = ROTATION[rotIx]; }
+  if (keep && lastName && (!name || name === 'theme' || name === 'auto')) name = lastName;   // restarted after the LG saver swap: same look
+  else if (!name || name === 'theme' || name === 'auto') { rotIx = (rotIx + 1) % ROTATION.length; name = ROTATION[rotIx]; }
   if (lowmem && (name === 'aurore' || name === 'soie')) name = 'eclipse';
   lastName = name || '';
   if (name === 'none' || !FX[name]) return;

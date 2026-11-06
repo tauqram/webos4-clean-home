@@ -409,7 +409,7 @@ function blDim(){
   clearInterval(blT); blT = setInterval(function(){ if (saverOn) api('/api/backlight?v=hold', noop); }, 60000);
 }
 function blRestore(){ clearInterval(blT); if (blOn) { blOn = false; api('/api/backlight?v=restore', noop, 15000); } }
-function saverStart(){
+function saverStart(keep){
   if (saverOn || document.hidden || mstack.length || settingsOn || SETMODE) return;
   clearTimeout(saverStop.t); saverOn = true; lastT = lastD = ''; tick(); wxRender();
   // free the Home background while the screensaver runs: two big photos at once would make the TV swap
@@ -419,7 +419,7 @@ function saverStart(){
   $('sdim').style.opacity = ((S.saver.dim === undefined ? 30 : S.saver.dim) / 100);
   blDim(); api('/api/history?v=saver', noop);      // Back forgets where you were, if the options say so
   $('scrimS').style.display = withPhotos ? 'block' : 'none';
-  drift(); if (withPhotos) { pIx = (bgIx + 1) % photos.length; showNext(); } else { if (window.Theme) Theme.saverFx($('fx'), S.saver.fx, LOWMEM); }
+  drift(); if (withPhotos) { pIx = (bgIx + 1) % photos.length; showNext(); } else { if (window.Theme) Theme.saverFx($('fx'), S.saver.fx, LOWMEM, keep === true); }
   dlog('saver on photos=' + withPhotos);
   setTimeout(function(){ if (saverOn) saverPerf(); }, 8000);
 }
@@ -1284,7 +1284,7 @@ var appsAt = 0;
 function onShow(){
   tick(); activity();
   clearTimeout(onHide.t);
-  saverTake(function(take){ if (take && S.saver.on) saverStart(); });      // LG's own screensaver was replaced by ours (saver-take.sh); a no-op if ours is still on
+  saverTake(function(take){ if (take && S.saver.on) { dlog('saver: back after the LG saver swap' + (saverOn ? ' (still on)' : ', same look')); saverStart(true); } });      // LG's own screensaver was replaced by ours (saver-take.sh); a no-op if ours is still on
   if (Date.now() - appsAt > 60000) { appsAt = Date.now(); loadApps(function(ok){ if (ok) focusItem(Math.min(1, rows.length - 1), 0); }); }
   wxLoad(false); loadSettings(); refreshPhotos(function(ch){ if (ch) bgApply(true); });
   if (photos.length && S.bg.on && Date.now() - bgAt > Math.max(1, S.bg.everyMin) * 60000) bgShow(bgIx + 1);
@@ -1295,7 +1295,7 @@ function onShow(){
 // the saver, and a relaunch asks saver-take first: if it was the swap, the saver simply stays as it is.
 var takeAt = 0;
 function saverTake(cb){ if (Date.now() - takeAt < 5000) return cb(true); api('/api/saver/take', function(err, j){ if (j && j.take) takeAt = Date.now(); cb(Date.now() - takeAt < 5000); }); }
-function onHide(){ clearTimeout(idleT); clearTimeout(onHide.t); if (saverOn) onHide.t = setTimeout(function(){ if (saverOn && document.hidden) saverStop(); }, 3000); if (mtop() === 'panel') panelClose(); }
+function onHide(){ clearTimeout(idleT); clearTimeout(onHide.t); if (saverOn) { dlog('saver: page hidden'); onHide.t = setTimeout(function(){ if (saverOn && document.hidden) { dlog('saver: still hidden after 12 s, stopped'); saverStop(); } }, 12000); } if (mtop() === 'panel') panelClose(); }
 
 if (INPMODE) {
   /* ---- Inputs overlay: only the Inputs list (opened by the Input / Guide keys); a second press of the key (webOSRelaunch) closes it ---- */
@@ -1314,7 +1314,7 @@ if (INPMODE) {
   requestAnimationFrame(function(){ requestAnimationFrame(function(){ var t = window.performance && performance.timing || {}, n = t.navigationStart || 0; api('/api/qs?m=settings-painted_nav=' + (Date.now() - n) + '_dom=' + (t.domContentLoadedEventEnd - n) + '_load=' + (t.loadEventEnd - n) + '_resp=' + (t.responseEnd - n) + '_dl=' + (t.domLoading - n) + '_script=' + (t.domInteractive - n) + '_js0=' + (T0 - n) + '_js1=' + (T1 - n), noop); }); });     // first frame is on screen: lets the TV log how long the key took
   if (MOCK && /settings=(\w+)/.test(location.search)) setTimeout(function(){ for (var i = 0; i < cats.length; i++) if (cats[i].id === /settings=(\w+)/.exec(location.search)[1]) { catIdx = i; } catClass(); openPane(); if (/row=(\d+)/.test(location.search)) sFocus(parseInt(/row=(\d+)/.exec(location.search)[1], 10), 0); }, 1200);
 } else {
-  document.addEventListener('visibilitychange', function(){ if (document.hidden) onHide(); else { if (saverOn) { clearTimeout(onHide.t); saverTake(noop); return; } if (!settingsOn) focusItem(1, 0); onShow(); } });
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) onHide(); else { if (saverOn) { if (onHide.t) dlog('saver: page shown again'); clearTimeout(onHide.t); saverTake(noop); return; } if (!settingsOn) focusItem(1, 0); onShow(); } });
   document.addEventListener('webOSRelaunch', function(){
     if (saverOn) { saverTake(function(take){ if (take) { clearTimeout(onHide.t); dlog('saver kept (LG saver swap)'); } else { saverStop(); relaunched(); } }); return; }
     relaunched();
