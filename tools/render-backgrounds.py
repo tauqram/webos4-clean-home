@@ -15,6 +15,8 @@ Each snow picture wraps vertically, so a layer two pictures tall that slides dow
 import math, os, random, sys
 import numpy as np
 from PIL import Image, ImageFilter
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from bggeom import RIM, SUN_X, rim_y, BLUE_HILLS, DUNES, SEA, OCEAN_MOON, DUNES_MOON   # shapes shared with make-backgrounds.py
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'tv', 'launcher', 'bg')
@@ -64,15 +66,7 @@ def snow(path, n, rmin, rmax, amin, amax, blur, seed, xpick=None, W=960, H=540):
 
 
 # ---------- Horizon: the night side of a planet, its atmosphere lit from behind at the sunrise point ----------
-# Geometry shared with make-backgrounds.py (the stars there are kept above this rim): an ellipse centred at x 960 px,
-# half-width 3840 px, top at y 280 px, half-height 3200 px (on a 1920x1080 screen).
-RIM = dict(cx=960.0, rx=3840.0, top=280.0, ry=3200.0)
-SUN_X = 1382.0
-
-
-def rim_y(x):
-    u = np.clip((x - RIM['cx']) / RIM['rx'], -1, 1)
-    return RIM['top'] + RIM['ry'] - RIM['ry'] * np.sqrt(1 - u * u)
+# Geometry in bggeom.py (shared with make-backgrounds.py, which draws the thin rim line itself as a vector: sharp at 4K).
 
 
 def horizon(path, s=1):
@@ -89,8 +83,8 @@ def horizon(path, s=1):
     # atmosphere above the rim: blue scattering that falls off with height, brighter towards the sun
     atm = np.where(sky, np.exp(-np.maximum(d, 0) / 24) * (.06 + .50 * wide) + np.exp(-np.maximum(d, 0) / 110) * (.025 + .16 * wide), 0)
     img += hexc('#3a62e0') * atm[..., None]
-    # the lit rim itself: a thin line of light, white near the sun, blue far from it, anti-aliased (1.1 px)
-    line = np.exp(-(d / 1.1) ** 2) * (.18 + .82 * wide)
+    # the soft light hugging the rim (the sharp line itself is an SVG stroke on top, see make-backgrounds.py)
+    line = np.exp(-(d / 5.0) ** 2) * (.05 + .22 * wide)
     img += (hexc('#bcd0ff') * (1 - near[..., None]) + hexc('#fff6e6') * near[..., None]) * line[..., None]
     # planet body: almost black, a soft limb glow just inside the rim, cooler and fainter far from the sun
     body = ~sky
@@ -140,44 +134,76 @@ class Canvas:
         Image.fromarray((np.clip(self.img + g, 0, 1) * 255 + .5).astype(np.uint8)).save(path, 'WEBP', quality=q, method=6)
 
 
-def curve_from_bezier(d, xs):
-    """y(x) for an SVG path made of 'M x y' then 'C x1 y1 x2 y2 x y' segments (monotonic in x)."""
-    n = [float(v) for v in d.replace('M', ' ').replace('C', ' ').split()]
-    px, py = [n[0]], [n[1]]; i = 2; cur = (n[0], n[1])
-    while i + 5 < len(n) + 1 and i + 5 <= len(n) - 1 + 1:
-        x1, y1, x2, y2, x3, y3 = n[i:i + 6]; i += 6
-        t = np.linspace(0, 1, 60)[1:]
-        bx = (1 - t) ** 3 * cur[0] + 3 * (1 - t) ** 2 * t * x1 + 3 * (1 - t) * t * t * x2 + t ** 3 * x3
-        by = (1 - t) ** 3 * cur[1] + 3 * (1 - t) ** 2 * t * y1 + 3 * (1 - t) * t * t * y2 + t ** 3 * y3
-        px += list(bx); py += list(by); cur = (x3, y3)
-    return np.interp(xs, px, py)
-
-
 def edge(c, top_y, soft=.6):
     """Anti-aliased coverage of the area below the curve top_y (array over x) on canvas c."""
     return np.clip((c.y - top_y) * c.s / (2 * soft) + .5, 0, 1)
 
 
-def moon(c, cx, cy, r, tint, k):
-    d = np.sqrt((c.x - cx) ** 2 + (c.y - cy) ** 2)
-    cov = np.clip((r - d) * c.s + .5, 0, 1)
-    limb = np.sqrt(np.clip(1 - (d / r) ** 2, 0, 1)) ** .35                      # limb darkening
-    rng = np.random.default_rng(7)                                              # faint maria: smooth low-frequency blotches
-    nz = sum(np.cos((c.x - cx) / r * f1 + p1) * np.cos((c.y - cy) / r * f2 + p2) for f1, f2, p1, p2 in rng.uniform(1.5, 4.5, (5, 4)))
-    tex = 1 - .12 * (nz - nz.min()) / (nz.max() - nz.min() + 1e-6)
-    disc = (hexc(tint) * (k * limb * tex)[..., None]) * cov[..., None]
-    c.img = c.img * (1 - cov[..., None]) + disc
+def fbm(w, h, seed, octaves=((6, 1.0), (13, .5), (27, .25))):
+    """Smooth value noise (0..1) of size w x h: a few random grids enlarged with bicubic filtering, summed."""
+    rng = np.random.default_rng(seed); out = np.zeros((h, w), np.float32); tot = 0
+    for n, amp in octaves:
+        g = (rng.random((n, n)) * 255).astype(np.uint8)
+        out += np.asarray(Image.fromarray(g).resize((w, h), Image.BICUBIC), np.float32) / 255 * amp; tot += amp
+    out /= tot
+    return (out - out.min()) / (out.max() - out.min() + 1e-6)
+
+
+def moon(c, cx, cy, r, tint, k, seed=7):
+    """A full moon: limb darkening, dark maria, craters with a lit rim and a shadowed wall (light from the upper left),
+    fine regolith grain. Drawn in a box around the disc at the canvas resolution, then a soft halo on the whole canvas."""
+    s = c.s; R = r * s; x0, y0 = int(cx * s - R - 3), int(cy * s - R - 3); n = int(2 * R + 7)
+    yy, xx = np.mgrid[0:n, 0:n].astype(np.float32)
+    dx = (xx + x0 + .5 - cx * s) / R; dy = (yy + y0 + .5 - cy * s) / R; d = np.sqrt(dx * dx + dy * dy)
+    cov = np.clip((1 - d) * R + .5, 0, 1)
+    z = np.sqrt(np.clip(1 - d * d, 0, 1))
+    limb = z ** .35
+    m = fbm(n, n, seed)                                                          # maria: large dark seas, uneven edges
+    maria = np.clip((m - .42) / .36, 0, 1); maria = maria * maria * (3 - 2 * maria)
+    alb = 1 - .26 * maria - .06 * fbm(n, n, seed + 1, ((24, 1.0), (50, .6)))
+    rng = random.Random(seed); L = (-.62, -.78)                                   # direction towards the sun (upper left)
+    tex = np.zeros((n, n), np.float32)
+    for _ in range(40):
+        while True:
+            u, v = rng.uniform(-.95, .95), rng.uniform(-.95, .95)
+            if u * u + v * v < .9: break
+        rc = .025 + .13 * rng.random() ** 2.6; zc = math.sqrt(max(0, 1 - u * u - v * v))
+        ox, oy = dx - u, dy - v; dd = np.sqrt(ox * ox + oy * oy) / rc
+        near = dd < 1.6
+        if not near.any(): continue
+        cosl = (ox * L[0] + oy * L[1]) / (np.sqrt(ox * ox + oy * oy) + 1e-6)
+        bowl = -.09 * np.exp(-(dd / .85) ** 6)                                    # darker, flat floor
+        shade = -.16 * np.exp(-((dd - .7) / .28) ** 2) * np.clip(cosl, 0, 1)     # the wall on the sun's side is in shadow
+        lit = .14 * np.exp(-((dd - .8) / .22) ** 2) * np.clip(-cosl, 0, 1)        # the opposite wall catches the light
+        rim = .10 * np.exp(-((dd - 1.05) / .16) ** 2) * (.4 + .6 * np.clip(cosl, 0, 1))
+        tex += (bowl + shade + lit + rim) * (.35 + .65 * zc) * near
+    grain = np.asarray(Image.fromarray(((np.random.default_rng(seed).random((n, n)) * 255)).astype(np.uint8)).filter(ImageFilter.GaussianBlur(.6 * s)), np.float32) / 255
+    grain = (grain - grain.mean()) * .10
+    val = k * limb * alb * (1 + tex + grain)
+    sub = c.img[y0:y0 + n, x0:x0 + n]
+    c.img[y0:y0 + n, x0:x0 + n] = sub * (1 - cov[..., None]) + hexc(tint) * (val * cov)[..., None]
     c.glow(cx, cy, r * 2.2, r * 2.2, tint, k * .10, 1.2)                         # soft halo, kept low (Sam: no glare)
     c.glow(cx, cy, r * 9, r * 9, tint, k * .035, 1.0)
 
 
-# ---------- Bleu nuit: calm deep-blue sky, a real Milky Way, a hill with a thin blue rim light ----------
-HILL = 'M0 372 C200 360 340 368 480 352 C580 340 640 318 720 304 C780 296 820 322 880 328 C950 334 990 300 1060 290 C1120 280 1160 304 1220 318 C1300 344 1420 340 1560 356 C1700 370 1820 362 1920 366'
+def mix(c, top_y, depth_px, c0, c1):
+    """Colour per pixel that goes from c0 at the ridge line to c1 depth_px lower (smooth)."""
+    u = np.clip((c.y - top_y) / depth_px, 0, 1); u = u * u * (3 - 2 * u)
+    return hexc(c0) * (1 - u[..., None]) + hexc(c1) * u[..., None]
 
 
+def lay(c, cov, col):
+    c.img = c.img * (1 - cov[..., None]) + col * cov[..., None]
+
+
+def row(c, fn):
+    return fn(c.x[0])[None, :].astype(np.float32) * np.ones((c.H, 1), np.float32)
+
+
+# ---------- Bleu nuit: calm deep-blue sky, a real Milky Way, a hill with a blue rim light, two lower ridges down to the bottom ----------
 def bleunuit(path, s=1):
     c = Canvas(s)
-    c.vgrad([(0, '#03050c'), (.22, '#050a19'), (.30, '#0a1531'), (.36, '#14275a'), (.5, '#0a1430'), (1, '#050915')])
+    c.vgrad([(0, '#03050c'), (.22, '#050a19'), (.30, '#0a1531'), (.36, '#14275a'), (.5, '#0a1430'), (1, '#0a1430')])
     # Milky Way: a tilted band with a soft core, uneven brightness and two darker dust lanes, faint
     ang = math.radians(-14); u = (c.x - 960) * math.cos(ang) + (c.y - 120) * math.sin(ang); v = -(c.x - 960) * math.sin(ang) + (c.y - 120) * math.cos(ang)
     band = np.exp(-(v / 120) ** 2) * (.6 + .4 * np.cos(u / 260 + 1.3) * np.cos(u / 97))
@@ -188,52 +214,48 @@ def bleunuit(path, s=1):
     dust = np.zeros((c.H, c.W), np.float32); ix = (sx * s).astype(int); iy = (sy * s).astype(int); ok = (ix >= 0) & (ix < c.W) & (iy >= 0) & (iy < c.H)
     np.add.at(dust, (iy[ok], ix[ok]), rng.uniform(.15, .55, ok.sum()))
     dust = np.asarray(Image.fromarray(np.clip(dust * 255, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(.5 * s)), np.float32) / 255 * 1.6
-    hy = curve_from_bezier(HILL, c.x[0])[None, :] * np.ones((c.H, 1), np.float32)
-    c.img += hexc('#dfe8ff') * (dust * (c.y < hy - 4))[..., None]
+    h0 = row(c, BLUE_HILLS[0])
+    c.img += hexc('#dfe8ff') * (dust * (c.y < h0 - 4))[..., None]
     c.glow(960, 330, 1150, 150, '#5a82e6', .20)                                   # horizon glow behind the hill
-    below = edge(c, hy, .5)
-    c.fill(below, '#050915')
-    depth = np.clip(c.y - hy, 0, None)
-    c.img += hexc('#0e1a38') * (np.exp(-depth / 40) * .9 * below)[..., None]      # the hill's top catches a little sky light
-    lit = np.exp(-((c.x - 1000) / 520) ** 2) * .9 + .1
-    c.img += hexc('#a9c4ff') * (np.exp(-((c.y - hy) / .9) ** 2) * .55 * lit)[..., None]   # rim light, strongest in the middle
-    c.img += hexc('#5a82e6') * (np.exp(-np.clip(hy - c.y, 0, None) / 14) * (c.y < hy) * .10 * lit)[..., None]
+    # three ridges, far to near; each body goes from a lit navy at its top to a deep blue (never black), mist in the valleys
+    for i, (cx, top, bot, k, mist_y) in enumerate(((1000, '#0f1c3d', '#070e22', .9, 0), (720, '#0e1a3a', '#081128', .55, 560), (1250, '#0f1c3e', '#0a142e', .45, 805))):
+        hy = row(c, BLUE_HILLS[i])
+        if mist_y: c.glow(960, mist_y, 1500, 70, '#3c5cb4', .07)                  # thin mist lying in the valley
+        cov = edge(c, hy, .5); lay(c, cov, mix(c, hy, 200, top, bot))
+        lit = np.exp(-((c.x - cx) / 560) ** 2) * .85 + .15
+        c.img += hexc('#20356e') * (np.exp(-np.clip(c.y - hy, 0, None) / 30) * .35 * k * cov)[..., None]   # the top catches sky light
+        c.img += hexc('#a9c4ff') * (np.exp(-((c.y - hy) / 4.0) ** 2) * .07 * k * lit)[..., None]           # soft light around the rim (the line is SVG)
+        c.img += hexc('#5a82e6') * (np.exp(-np.clip(hy - c.y, 0, None) / 14) * (c.y < hy) * .10 * k * lit)[..., None]
     c.save(path, seed=41)
 
 
 # ---------- Ocean: moon over a calm sea; the shimmering reflection stays live (vector) on top ----------
-SEA = 373.0
-
-
 def ocean(path, s=1):
     c = Canvas(s)
     c.vgrad([(0, '#02040a'), (.18, '#050b18'), (.33, '#0b1a30'), (.345, '#10253f'), (.3455, '#081426'), (.42, '#060f1e'), (.7, '#040912'), (1, '#03060c')])
-    c.glow(1536, 200, 820, 460, '#5e82c8', .07, 1.4)                            # sky lit by the moon
-    c.glow(1536, SEA, 900, 10, '#9fb8e8', .10, 2, mask=(np.abs(c.y - SEA) < 30).astype(np.float32))   # the horizon line catches light
+    mx, my, mr = OCEAN_MOON
+    c.glow(mx, my, 820, 460, '#5e82c8', .07, 1.4)                                 # sky lit by the moon
+    c.glow(mx, SEA, 900, 10, '#9fb8e8', .10, 2, mask=(np.abs(c.y - SEA) < 30).astype(np.float32))   # the horizon line catches light
     sea = (c.y > SEA).astype(np.float32)
-    c.glow(1536, SEA + 30, 240, 520, '#7f9fd8', .05, 1.6, mask=sea)               # broad glow on the water under the moon
-    moon(c, 1536, 200, 35, '#dfe6f2', .78)
+    c.glow(mx, SEA + 30, 240, 520, '#7f9fd8', .05, 1.6, mask=sea)                 # broad glow on the water under the moon
+    moon(c, mx, my, mr, '#dfe6f2', .80)
     c.save(path, seed=42)
 
 
-# ---------- Dunes: night desert, amber light grazing the crests, a muted moon ----------
-def dune_curve(xs, base, amp, seed):
-    r = random.Random(seed); ph = r.uniform(0, 6)
-    gx = np.arange(0, 1921, 60, dtype=np.float32); gy = base + amp * np.sin(gx / 420 + ph) + amp * .45 * np.sin(gx / 170 + ph * 2)
-    return np.interp(xs, gx, gy)
-
-
+# ---------- Dunes: night desert, amber light grazing the crests, a muted moon; the dunes go on to the bottom of the screen ----------
 def dunes(path, s=1):
     c = Canvas(s)
-    c.vgrad([(0, '#07060c'), (.22, '#100b17'), (.30, '#1f121d'), (.35, '#2c1823'), (.45, '#160d15'), (1, '#0b070b')])
+    c.vgrad([(0, '#07060c'), (.22, '#100b17'), (.30, '#1f121d'), (.35, '#2c1823'), (.45, '#160d15'), (1, '#160d15')])
     c.glow(730, 330, 1050, 150, '#ff9a5a', .16)                                   # warm last light low over the dunes
-    moon(c, 1459, 210, 33, '#ece0cc', .80)
-    for base, amp, seed, col, rim in ((330, 26, 1, '#2b1822', .32), (372, 22, 2, '#1d1017', .20), (420, 18, 3, '#110a0f', .11)):
-        top = dune_curve(c.x[0], base, amp, seed)[None, :] * np.ones((c.H, 1), np.float32)
-        cov = edge(c, top, .5); c.fill(cov, col)
-        dpt = np.clip(c.y - top, 0, None)
-        c.img += hexc('#ff9c6a') * (np.exp(-dpt / 22) * rim * .45 * cov)[..., None]      # light grazing the crest, fading down the slope
-        c.img += hexc('#ffb38a') * (np.exp(-((c.y - top) / .9) ** 2) * rim)[..., None]    # the crest line itself
+    moon(c, *DUNES_MOON, tint='#ece0cc', k=.82, seed=8)
+    # far crests are lit the most; the near dunes keep a warm body colour (no black band at the bottom)
+    spec = (('#2e1a24', '#21131b', .32), ('#22131b', '#180e15', .20), ('#1a0f16', '#130b11', .13),
+            ('#24141b', '#170d13', .15), ('#2a171d', '#1a0f15', .17), ('#311b20', '#1f1218', .19))
+    for fn, (top, bot, rim) in zip(DUNES, spec):
+        hy = row(c, fn); cov = edge(c, hy, .5); lay(c, cov, mix(c, hy, 160, top, bot))
+        dpt = np.clip(c.y - hy, 0, None)
+        c.img += hexc('#ff9c6a') * ((np.exp(-dpt / 22) * .45 + np.exp(-dpt / 110) * .12) * rim * cov)[..., None]   # light grazing the crest
+        c.img += hexc('#ffb38a') * (np.exp(-((c.y - hy) / 3.5) ** 2) * rim * .18)[..., None]                   # soft glow around the crest (line is SVG)
     c.save(path, seed=43)
 
 
@@ -248,22 +270,10 @@ def degrade(path, s=1):
     c.save(path, grain=.009, seed=44)
 
 
-# ---------- Lignes: fine topographic lines lit by a warm light from the top right ----------
+# ---------- Lignes: a warm light from the top right; the contour lines themselves are SVG (sharp, they sway slowly) ----------
 def lignes(path, s=1):
     c = Canvas(s); c.img[:] = hexc('#0b0c0f')
     c.glow(1800, -250, 1100, 760, '#ffbe82', .16, 1.6)
-    r = random.Random(5); p = [r.uniform(0, 6) for _ in range(4)]
-    light = np.exp(-(((c.x - 1700) / 1300) ** 2 + ((c.y + 150) / 900) ** 2))
-    xs = c.x[0]
-    for i in range(26):
-        t = i / 25.0; base = 120 + 950 * (t ** 1.25)
-        y = base + (34 - 14 * t) * np.sin(xs / 300 + p[0] + t * 2.2) + 18 * np.sin(xs / 130 + p[1] - t * 3.1) + 9 * np.sin(xs / 61 + p[2] + t * 5)
-        dy = np.gradient(y, xs)
-        yl = y[None, :] * np.ones((c.H, 1), np.float32)
-        d = np.abs(c.y - yl) / np.sqrt(1 + dy[None, :] ** 2)
-        line = np.clip(.7 - d * c.s / 1.0, 0, 1)                                 # 1.4 px line, anti-aliased
-        k = (.08 + .26 * light) * (1 - .55 * np.clip((c.y - 420) / 500, 0, 1))
-        c.img += (hexc('#ffffff') * .5 + hexc('#ffd2a6') * .5) * (line * k)[..., None]
     c.save(path, seed=45)
 
 
@@ -282,6 +292,9 @@ ONLY = set(sys.argv[1:])          # e.g. "python3 tools/render-backgrounds.py oc
 for name, fn in (('bleunuit', bleunuit), ('ocean', ocean), ('dunes', dunes), ('degrade', degrade), ('lignes', lignes), ('studio', studio)):
     if ONLY and name not in ONLY: continue
     fn(os.path.join(OUT, name + '.webp')); fn(os.path.join(OUT, name + '@2x.webp'), 2)
+if 'horizon' in ONLY or not ONLY:
+    horizon(os.path.join(OUT, 'horizon.webp')); horizon(os.path.join(OUT, 'horizon@2x.webp'), 2)
+    horizon_sun(os.path.join(OUT, 'horizon-sun.webp')); horizon_sun(os.path.join(OUT, 'horizon-sun@2x.webp'), 2)
 if ONLY:
     raise SystemExit(0)
 base(os.path.join(OUT, 'noel-base.webp'))
@@ -293,6 +306,4 @@ snow(os.path.join(OUT, 'snow-far@2x.webp'), 420, 1.4, 3.2, .25, .65, .8, 1, W=38
 snow(os.path.join(OUT, 'snow-mid.webp'), 70, 1.6, 3.0, .25, .55, 1.0, 2)
 # near: a few big out-of-focus flakes, mostly along the left and right edges
 snow(os.path.join(OUT, 'snow-near.webp'), 9, 7, 13, .10, .20, 4.0, 3, lambda u, r: u < .2 or u > .8 or r.random() < .15)
-horizon(os.path.join(OUT, 'horizon.webp')); horizon(os.path.join(OUT, 'horizon@2x.webp'), 2)
-horizon_sun(os.path.join(OUT, 'horizon-sun.webp')); horizon_sun(os.path.join(OUT, 'horizon-sun@2x.webp'), 2)
 for f in sorted(os.listdir(OUT)): print(f, os.path.getsize(os.path.join(OUT, f)))

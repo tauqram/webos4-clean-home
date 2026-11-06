@@ -7,12 +7,12 @@
 var THEMES = {
   noir:     {name: 'Noir OLED', accent: '#ffffff', fx: 'fireworks'},
   aurore:   {name: 'Aurore',    accent: '#7cf5d0', fx: 'fireworks'},
-  bleunuit: {name: 'Bleu nuit', accent: '#8fb4ff', fx: 'fireworks', layers: ['full s1', 'full s2 tw1', 'full s3 tw2', 'sh sh1', 'sh sh2']},
-  horizon:  {name: 'Horizon',   accent: '#a9c4ff', fx: 'fireworks', layers: ['full s1', 'full s2 tw1', 'full s3 tw2', 'sh sh1', 'sh sh2', 'sun']},
-  ocean:    {name: 'Océan',     accent: '#bcd2f5', fx: 'fireworks', layers: ['full s1 tw1', 'full ref shim']},
-  dunes:    {name: 'Dunes',     accent: '#ffb38a', fx: 'fireworks', layers: ['full s1 tw1']},
+  bleunuit: {name: 'Bleu nuit', accent: '#8fb4ff', fx: 'fireworks', layers: ['full rim', 'full s1', 'full s2 tw1', 'full s3 tw2', 'sh sh1', 'sh sh2']},
+  horizon:  {name: 'Horizon',   accent: '#a9c4ff', fx: 'fireworks', layers: ['full rim', 'full s1', 'full s2 tw1', 'full s3 tw2', 'sh sh1', 'sh sh2', 'sun']},
+  ocean:    {name: 'Océan',     accent: '#bcd2f5', fx: 'fireworks', layers: ['full s1 tw1', 'full ref1 shim1', 'full ref2 shim2', 'sh sh1', 'sh sh2']},
+  dunes:    {name: 'Dunes',     accent: '#ffb38a', fx: 'fireworks', layers: ['full rim', 'full s1 tw1', 'sh sh1', 'sh sh2']},
   degrade:  {name: 'Dégradé',   accent: '#b9a8ff', fx: 'fireworks', layers: []},
-  lignes:   {name: 'Lignes',    accent: '#ffc58f', fx: 'fireworks', layers: []},
+  lignes:   {name: 'Lignes',    accent: '#ffc58f', fx: 'fireworks', layers: ['lines']},
   studio:   {name: 'Studio',    accent: '#f2f2f0', fx: 'fireworks', soft: true, layers: []},
   noel:     {name: 'Noël',      accent: '#cfe0ff', fx: 'fireworks', layers: ['snow far', 'snow mid', 'snow near']}
 };

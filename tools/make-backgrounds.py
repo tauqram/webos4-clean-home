@@ -11,7 +11,10 @@ area behind the app rows stays dark. Fixed random seeds: the output is the same 
 themes.js puts the layers into #themebg (THEMES[id].layers, one div per entry: class "nb-<name>"), styled here under
 body.th-<id>.
 """
-import math, os, random, urllib.parse
+import math, os, random, sys, urllib.parse
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import numpy as np
+from bggeom import RIM, SUN_X, rim_y, HILL, bezier_y, BLUE_HILLS, DUNES, SEA, OCEAN_MOON, DUNES_MOON, NLINES, contour_y
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'tv', 'launcher', 'backgrounds.css')
@@ -46,17 +49,56 @@ def bright(n, ymax, seed, keep=None):
 
 
 
-def reflection():
+def reflection(part):
+    """The moon's path on the sea: short wavy glints (one ripple each, round ends), split over two layers that shimmer and
+    sway out of step, so the light seems to ride on moving water."""
     r = random.Random(9); d = []
-    for _ in range(260):
-        t = r.random() ** 1.3; y = 372 + t * 700; w = r.uniform(6, 26) * (1 + t * 2.2); x = 1536 + r.gauss(0, 14 + t * 90) - w / 2
-        op = (0.42 * (1 - t) + 0.04) * r.uniform(.4, 1)
-        d.append("<rect x='%.0f' y='%.0f' width='%.0f' height='%.1f' rx='1' fill='#e6eeff' fill-opacity='%.2f'/>" % (x, y, w, 1.2 + t * 2.2, op))
+    mx = OCEAN_MOON[0]
+    for i in range(300):
+        t = r.random() ** 1.3; y = SEA + 2 + t * 700; w = r.uniform(8, 30) * (1 + t * 2.2); x = mx + r.gauss(0, 14 + t * 90) - w / 2
+        op = (0.42 * (1 - t) + 0.04) * r.uniform(.4, 1); a = (1.3 + t * 3.2) * r.uniform(.7, 1.2) * r.choice((-1, 1)); sw = .9 + t * 1.8
+        if i % 2 != part: continue
+        k = 3 if w > 34 else 2; seg = w / k                                       # 1 to 1.5 ripples per glint
+        d.append("<path d='M%.1f %.1f q%.1f %.1f %.1f 0%s' fill='none' stroke='#e6eeff' stroke-width='%.1f' stroke-linecap='round' stroke-opacity='%.2f'/>"
+                 % (x, y, seg / 2, -a, seg, (' t%.1f 0' % seg) * (k - 1), sw, op))
     return uri(SVG + ''.join(d) + '</svg>')
 
 
+def hexmix(a, b, u):
+    a = [int(a[i:i + 2], 16) for i in (1, 3, 5)]; b = [int(b[i:i + 2], 16) for i in (1, 3, 5)]
+    return '#%02x%02x%02x' % tuple(int(round(p + (q - p) * u)) for p, q in zip(a, b))
 
 
+def path_d(xs, ys):
+    """A smooth SVG path through the points (Catmull-Rom turned into cubic Beziers)."""
+    P = list(zip(xs, ys)); o = ['M%.1f %.1f' % P[0]]
+    for i in range(len(P) - 1):
+        p0 = P[max(i - 1, 0)]; p1 = P[i]; p2 = P[i + 1]; p3 = P[min(i + 2, len(P) - 1)]
+        o.append('C%.1f %.1f %.1f %.1f %.1f %.1f' % (p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6,
+                                                     p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6, p2[0], p2[1]))
+    return ''.join(o)
+
+
+def grad(gid, x0, x1, f, n=10):
+    """Horizontal gradient for a stroke: f(x) -> (colour, opacity)."""
+    st = []
+    for k in range(n + 1):
+        x = x0 + (x1 - x0) * k / n; col, op = f(x)
+        st.append("<stop offset='%.3f' stop-color='%s' stop-opacity='%.3f'/>" % (k / float(n), col, op))
+    return "<linearGradient id='%s' gradientUnits='userSpaceOnUse' x1='%.0f' y1='0' x2='%.0f' y2='0'>%s</linearGradient>" % (gid, x0, x1, ''.join(st))
+
+
+def rims(lines, view='0 0 1920 1080'):
+    """Thin lit lines drawn by the TV itself (vector: sharp at 4K). lines: (fn y(x), [(width, f(x)->(colour, opacity)), ...])."""
+    defs, paths = [], []
+    xs = np.arange(-120, 2041, 30.0)
+    for i, (fn, strokes) in enumerate(lines):
+        d = path_d(xs, fn(xs))
+        for j, (w, f) in enumerate(strokes):
+            gid = 'g%d_%d' % (i, j); defs.append(grad(gid, -120, 2040, f))
+            paths.append("<path d='%s' fill='none' stroke='url(#%s)' stroke-width='%.2f' stroke-linecap='round'/>" % (d, gid, w))
+    svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='%s' preserveAspectRatio='none'><defs>%s</defs>%s</svg>" % (view, ''.join(defs), ''.join(paths))
+    return uri(svg)
 
 
 def kf(name, body):
@@ -90,64 +132,77 @@ def layer(theme, name, bg):
     css.append('body.th-%s #nbg .nb-%s{background-image:%s}' % (theme, name, bg))
 
 
-# ---- Horizon: the night side of a planet whose atmosphere is lit from behind; sky, rim and planet are a picture computed on
-# the PC (render-backgrounds.py: real light falloff, 4K copy); stars, shooting stars and the breathing sunrise stay live on top.
-def above_rim(x, y):      # same ellipse as RIM in render-backgrounds.py: stars only in the sky, never on the planet
-    u = (x - 960.0) / 3840.0
-    return y < 280.0 + 3200.0 - 3200.0 * math.sqrt(1 - u * u) - 6
+# ---- Horizon: the night side of a planet whose atmosphere is lit from behind; sky, glow and planet are a picture computed on
+# the PC (render-backgrounds.py: real light falloff, 4K copy); the thin rim line is an SVG stroke (the TV draws it at 4K, so it
+# stays sharp); stars, shooting stars and the breathing sunrise stay live on top.
+def above_rim(x, y):      # stars only in the sky, never on the planet
+    return y < float(rim_y(x)) - 6
 
 
 def hires(name):
     return 'url(bg/%s.webp);background-image:-webkit-image-set(url(bg/%s.webp) 1x,url(bg/%s@2x.webp) 2x)' % (name, name, name)
 
 
+def _hz(x, k):
+    wide = math.exp(-((x - SUN_X) / 1400.0) ** 2); near = math.exp(-((x - SUN_X) / 520.0) ** 2)
+    return hexmix('#bcd0ff', '#fff6e6', near), min(1.0, (.18 + .82 * wide) * k)
+
+
 css += ['body.th-horizon{--bg:#000;--card:#0d1018}',
         'body.th-horizon #themebg{background:#000 0 0/100% 100% no-repeat;background-image:' + hires('horizon') + '}',
         # the sunrise bloom: 1400x520 px picture centred on the rim at x 1382 (72 %), y 299 px
         'body.th-horizon .nb-sun{left:71.98%;top:18.71rem;width:87.5rem;height:32.5rem;margin:-16.25rem 0 0 -43.75rem;background:0 0/100% 100% no-repeat;background-image:' + hires('horizon-sun') + ';' + anim('nbbreathe 9s ease-in-out infinite alternate') + '}']
+layer('horizon', 'rim', rims([(rim_y, [(4.5, lambda x: _hz(x, .22)), (1.5, lambda x: _hz(x, 1.0))])]))
 layer('horizon', 's1', stars(260, 560, .6, 1.3, 1, keep=above_rim)); layer('horizon', 's2', stars(90, 520, .8, 1.7, 2, keep=above_rim)); layer('horizon', 's3', bright(9, 470, 3, keep=above_rim))
 
-# ---- The six themes below are pictures computed on the PC (render-backgrounds.py: real light falloff, rim light, 4K copy).
-# Only the small live details stay here, as vectors on top: twinkling stars, shooting stars, the shimmer on the sea.
-def bezier_y(d, x):
-    n = [float(v) for v in d.replace('M', ' ').replace('C', ' ').split()]; cur = (n[0], n[1]); pts = [cur]
-    for i in range(2, len(n), 6):
-        x1, y1, x2, y2, x3, y3 = n[i:i + 6]
-        for k in range(1, 41):
-            t = k / 40.0
-            pts.append(((1 - t) ** 3 * cur[0] + 3 * (1 - t) ** 2 * t * x1 + 3 * (1 - t) * t * t * x2 + t ** 3 * x3,
-                        (1 - t) ** 3 * cur[1] + 3 * (1 - t) ** 2 * t * y1 + 3 * (1 - t) * t * t * y2 + t ** 3 * y3))
-        cur = (x3, y3)
-    for (ax, ay), (bx, by) in zip(pts, pts[1:]):
-        if ax <= x <= bx: return ay + (by - ay) * (x - ax) / max(bx - ax, 1e-6)
-    return pts[-1][1]
 
-
-HILL = 'M0 372 C200 360 340 368 480 352 C580 340 640 318 720 304 C780 296 820 322 880 328 C950 334 990 300 1060 290 C1120 280 1160 304 1220 318 C1300 344 1420 340 1560 356 C1700 370 1820 362 1920 366'
-_dr = random.Random(1); _dph = _dr.uniform(0, 6)
-def dune_top(x): return 330 + 26 * math.sin(x / 420 + _dph) + 26 * .45 * math.sin(x / 170 + _dph * 2)
-
-
+# ---- The themes below are pictures computed on the PC (render-backgrounds.py: real light falloff, 4K copy). On top, as vectors:
+# the thin lit lines (hill rims, dune crests, contour lines: sharp at 4K), twinkling stars, shooting stars, the shimmer on the sea.
 def picture(theme, name, card, extra=''):
     css.append('body.th-%s{--card:%s%s}' % (theme, card, extra))
     css.append('body.th-%s #themebg{background:#000 0 0/100%% 100%% no-repeat;background-image:%s}' % (theme, hires(name)))
 
 
+def under(fn, x, y, gap=6):
+    return y < float(fn(x)) - gap
+
+
 picture('bleunuit', 'bleunuit', '#111a30')
-layer('bleunuit', 's1', stars(340, 760, .6, 1.3, 4, keep=lambda x, y: y < bezier_y(HILL, x) - 6))
-layer('bleunuit', 's2', stars(120, 700, .8, 1.7, 5, keep=lambda x, y: y < bezier_y(HILL, x) - 6))
-layer('bleunuit', 's3', bright(12, 640, 6, keep=lambda x, y: y < bezier_y(HILL, x) - 6))
+def _bn(cx, k):
+    return lambda x: ('#a9c4ff', (math.exp(-((x - cx) / 560.0) ** 2) * .85 + .15) * k)
+layer('bleunuit', 'rim', rims([(BLUE_HILLS[0], [(4.0, _bn(1000, .10)), (1.3, _bn(1000, .55))]),
+                               (BLUE_HILLS[1], [(4.0, _bn(720, .06)), (1.2, _bn(720, .32))]),
+                               (BLUE_HILLS[2], [(4.0, _bn(1250, .05)), (1.2, _bn(1250, .26))])]))
+layer('bleunuit', 's1', stars(340, 760, .6, 1.3, 4, keep=lambda x, y: under(BLUE_HILLS[0], x, y)))
+layer('bleunuit', 's2', stars(120, 700, .8, 1.7, 5, keep=lambda x, y: under(BLUE_HILLS[0], x, y)))
+layer('bleunuit', 's3', bright(12, 640, 6, keep=lambda x, y: under(BLUE_HILLS[0], x, y)))
 
 picture('dunes', 'dunes', '#1c1218', ';--dim:#b9a59f')
-layer('dunes', 's1', stars(160, 520, .45, 1.0, 7, keep=lambda x, y: y < dune_top(x) - 6 and math.hypot(x - 1459, y - 210) > 60))
+_crest = (.32, .20, .13, .15, .17, .19)
+layer('dunes', 'rim', rims([(fn, [(1.2, (lambda k: lambda x: ('#ffb38a', k * .9))(k))]) for fn, k in zip(DUNES, _crest)]))
+layer('dunes', 's1', stars(160, 520, .45, 1.0, 7, keep=lambda x, y: under(DUNES[0], x, y) and math.hypot(x - DUNES_MOON[0], y - DUNES_MOON[1]) > 60))
 
 picture('ocean', 'ocean', '#0d1626')
-css.append('body.th-ocean .nb-shim{' + anim('nbtw 2.6s ease-in-out infinite alternate') + '}')
-layer('ocean', 's1', stars(150, 340, .45, 1.0, 10, keep=lambda x, y: math.hypot(x - 1536, y - 200) > 70))
-layer('ocean', 'ref', reflection())
+css.append('body.th-ocean .nb-shim1{' + anim('nbtw 2.6s ease-in-out infinite alternate,nbwave1 6.2s ease-in-out infinite alternate') + '}')
+css.append('body.th-ocean .nb-shim2{' + anim('nbtw 3.3s ease-in-out infinite alternate 1.1s,nbwave2 7.7s ease-in-out infinite alternate') + '}')
+css.append(kf('nbwave1', 'from{transform:translate3d(-.45rem,0,0)}to{transform:translate3d(.45rem,.08rem,0)}'))
+css.append(kf('nbwave2', 'from{transform:translate3d(.55rem,.06rem,0)}to{transform:translate3d(-.5rem,0,0)}'))
+layer('ocean', 's1', stars(150, 340, .45, 1.0, 10, keep=lambda x, y: math.hypot(x - OCEAN_MOON[0], y - OCEAN_MOON[1]) > 70))
+layer('ocean', 'ref1', reflection(0)); layer('ocean', 'ref2', reflection(1))
 
 picture('degrade', 'degrade', '#12121c')
+
+# Lignes: the contour lines are one SVG layer a little larger than the screen that sways very slowly (36 s each way)
 picture('lignes', 'lignes', '#16171b')
+def _lg(i):
+    t = i / (NLINES - 1.0); ym = 120 + 950 * (t ** 1.25)
+    def f(x):
+        light = math.exp(-(((x - 1700) / 1300.0) ** 2 + ((ym + 150) / 900.0) ** 2))
+        return '#ffe9d3', min(1.0, (.08 + .26 * light) * (1 - .55 * min(max((ym - 420) / 500.0, 0), 1)) * 1.25)
+    return f
+css += ['#nbg .nb-lines{left:-5%;top:-2%;width:110%;height:104%;background:0 0/100% 100% no-repeat;will-change:transform;' + anim('nbsway 36s ease-in-out infinite alternate') + '}',
+        kf('nbsway', 'from{transform:translate3d(-3rem,-.5rem,0)}to{transform:translate3d(3rem,.5rem,0)}')]
+layer('lignes', 'lines', rims([((lambda i: lambda x: contour_y(i, x))(i), [(1.3, _lg(i))]) for i in range(NLINES)], view='-96 -21.6 2112 1123.2'))
 picture('studio', 'studio', '#1a1b1e')
 
 # ---- Noel (season theme, 1 Dec - 6 Jan with the theme on "auto"): a calm blue night and slow snow over the whole screen.

@@ -477,3 +477,15 @@ The sway and the light run continuously on one tile while Home is shown (composi
 ### 2026.11.06.8 - Focus light without rings
 
 Sam saw the rings of the CSS radial-gradient (8-bit steps on the OLED, at 4K: devicePixelRatio 2 measured). `.sheen i` now uses `launcher/bg/focus-light.webp` (768 px lossless WebP, white with a Gaussian alpha falloff and triangular dither, drawn by `tools/make-focus-light.py`; `ram_sync` already copies `bg/*.webp`). Undo: revert the commit.
+
+### 2026.11.06.9 - Sharper backgrounds, moving lines, fuller landscapes
+
+Sam's TV review of the picture backgrounds (4K page, devicePixelRatio 2):
+- Removed the Sable and Azion themes (`themes.js`, their `body.th-sable` / `body.th-azion` rules in `index.html`). A TV set to one of them falls back to the automatic theme.
+- Thin bright lines (Horizon's planet rim, the Bleu nuit hill rims, the Dunes crests, the Lignes contours) showed steps on the TV. They are no longer baked into the WebP pictures (lossy WebP with half-resolution colour smears and steps a 1-2 px near-horizontal line); they are SVG strokes in `backgrounds.css` (`nb-rim`, `nb-lines` layers) that the TV draws at its own 4K resolution. Only the soft light around them stays in the pictures. Shapes shared by both generators moved to `tools/bggeom.py`.
+- Lignes: the contour layer (110 % of the screen) sways slowly, 36 s each way (`nbsway`, transform only).
+- Dunes: three more dune ridges down to the bottom of the screen, warm body colours instead of black. Bleu nuit: two lower ridges with mist in the valleys, deep blue instead of black at the bottom.
+- Ocean: the reflection glints are wavy strokes on two layers that shimmer and sway out of step (`nbwave1/2`).
+- Moons (Ocean, Dunes): maria from smooth noise, 40 craters with a shadowed and a lit wall, fine regolith grain.
+- Shooting stars added to Ocean and Dunes.
+Verified in the build container only (headless Chromium at devicePixelRatio 2). NOT verified on the TV: smoothness of the swaying Lignes layer (one 4K-sized composited layer, about 36 MB of GPU memory while Lignes is shown). Undo: revert the commit.

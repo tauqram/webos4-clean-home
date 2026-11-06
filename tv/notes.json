@@ -1,5 +1,18 @@
 [
   {
+    "v": "2026.11.06.9",
+    "date": "2026-11-06",
+    "title": "Fonds d'écran plus nets et plus vivants",
+    "notes": [
+      "Les traits fins des fonds (bord de la planète d'Horizon, collines de Bleu nuit, crêtes des Dunes, Lignes) sont maintenant dessinés par la télé elle-même : ils restent parfaitement nets en 4K, sans escaliers.",
+      "Les lignes du thème Lignes bougent tout doucement.",
+      "Dunes et Bleu nuit continuent le paysage jusqu'en bas de l'écran au lieu d'un bas tout noir.",
+      "Océan : les reflets de la lune ondulent comme sur l'eau. Des étoiles filantes passent aussi sur Océan et Dunes.",
+      "Les lunes sont plus réalistes, avec leurs mers sombres et leurs cratères.",
+      "Les thèmes Sable et Azion ont été retirés."
+    ]
+  },
+  {
     "v": "2026.11.06.8",
     "date": "2026-11-06",
     "title": "Sélection des icônes : lumière parfaitement fondue",
