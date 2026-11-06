@@ -178,5 +178,18 @@ css += ['body.th-studio{--card:#1a1b1e}',
         'body.th-studio .nb-light{left:50%;top:-38rem;width:120rem;margin-left:-60rem;height:80rem;background:radial-gradient(closest-side,rgba(255,255,255,.13),rgba(255,255,255,.04) 55%,rgba(255,255,255,0))}',
         'body.th-studio .nb-vig{left:0;top:0;width:100%;height:100%;background:radial-gradient(ellipse 85% 75% at 50% 35%,rgba(0,0,0,0) 55%,rgba(0,0,0,.45))}']
 
+# ---- Noel (season theme, 1 Dec - 6 Jan with the theme on "auto"): a calm blue night and slow snow over the whole screen.
+# The pictures come from tools/make-season-backgrounds.py (computed on the PC); here they only slide down (transform).
+# Each snow layer is two pictures tall and moves by exactly one picture, so the loop has no seam.
+css += ['body.th-noel{--card:#0f1a2c}',
+        'body.th-noel #themebg{background:#03060d url(bg/noel-base.webp) 0 0/100% 100% no-repeat}',
+        '#nbg .nb-snow{left:0;top:-100%;width:100%;height:200%;background-repeat:repeat-y;background-size:100% 50%;will-change:transform}',
+        'body.th-noel .nb-far{background-image:url(bg/snow-far.webp);' + anim('nbfall 70s linear infinite') + '}',
+        'body.th-noel .nb-mid{background-image:url(bg/snow-mid.webp);' + anim('nbfall2 38s linear infinite') + '}',
+        'body.th-noel .nb-near{background-image:url(bg/snow-near.webp);' + anim('nbfall3 21s linear infinite') + '}',
+        kf('nbfall', 'from{transform:translate3d(0,0,0)}to{transform:translate3d(0,50%,0)}'),
+        kf('nbfall2', 'from{transform:translate3d(0,0,0)}to{transform:translate3d(-1.5rem,50%,0)}'),
+        kf('nbfall3', 'from{transform:translate3d(0,0,0)}to{transform:translate3d(2.5rem,50%,0)}')]
+
 open(OUT, 'w', newline='\n').write('\n'.join(css) + '\n')
 print('wrote', OUT, os.path.getsize(OUT), 'bytes')

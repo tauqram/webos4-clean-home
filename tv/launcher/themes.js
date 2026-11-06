@@ -14,13 +14,14 @@ var THEMES = {
   degrade:  {name: 'Dégradé',   accent: '#b9a8ff', fx: 'fireworks', layers: ['m m1', 'm m2', 'm m3', 'fade', 'grain']},
   lignes:   {name: 'Lignes',    accent: '#ffc58f', fx: 'fireworks', layers: ['spot', 'full ln', 'fade', 'grain']},
   studio:   {name: 'Studio',    accent: '#f2f2f0', fx: 'fireworks', soft: true, layers: ['light', 'vig', 'grain']},
+  noel:     {name: 'Noël',      accent: '#cfe0ff', fx: 'fireworks', layers: ['snow far', 'snow mid', 'snow near']},
   sable:    {name: 'Sable',     accent: '#ffc98a', fx: 'fireworks'},
   azion:    {name: 'Azion',     accent: '#ecebe8', fx: 'fireworks', soft: true}   // soft: bursts keep to the theme's muted colours
 };
 // layers: the divs a theme draws in #themebg (each word becomes class nb-<word>), styled by backgrounds.css,
 // which tools/make-backgrounds.py generates. Themes without layers use the .tb1-.tb3 divs styled in index.html.
 // {theme: 'noel', from: [12, 1], to: [1, 6]}  = from 1 December to 6 January (month, day), both included
-var SEASONS = [];
+var SEASONS = [{theme: 'noel', from: [12, 1], to: [1, 6]}];
 var BASE = 'aurore';      // what "auto" shows outside every season
 
 function md(d){ return (d.getMonth() + 1) * 100 + d.getDate(); }
@@ -132,6 +133,7 @@ var PALETTES = {
   dunes: ['#ffb38a', '#ffd9a0', '#fff1d6', '#ff7b6b'],
   degrade: ['#b9a8ff', '#5ad1e0', '#ff8fd0', '#ffffff'],
   lignes: ['#ffc58f', '#ffffff', '#ff9a6a', '#ffe7c2'],
+  noel: ['#ffffff', '#cfe0ff', '#ffd27a', '#ff6b6b'],
   studio: ['#f2f2f0', '#d8d6d0', '#b9b7b0', '#ffffff'],
   azion: ['#d97757', '#ecebe8', '#88d1a2', '#e5be77', '#e796a8', '#bbaceb', '#7fafe2']   // Azion's terracotta, off-white and softened colours of meaning
 };

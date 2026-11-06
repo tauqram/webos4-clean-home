@@ -59,3 +59,12 @@ body.th-studio{--card:#1a1b1e}
 body.th-studio #themebg{background:#111214}
 body.th-studio .nb-light{left:50%;top:-38rem;width:120rem;margin-left:-60rem;height:80rem;background:radial-gradient(closest-side,rgba(255,255,255,.13),rgba(255,255,255,.04) 55%,rgba(255,255,255,0))}
 body.th-studio .nb-vig{left:0;top:0;width:100%;height:100%;background:radial-gradient(ellipse 85% 75% at 50% 35%,rgba(0,0,0,0) 55%,rgba(0,0,0,.45))}
+body.th-noel{--card:#0f1a2c}
+body.th-noel #themebg{background:#03060d url(bg/noel-base.webp) 0 0/100% 100% no-repeat}
+#nbg .nb-snow{left:0;top:-100%;width:100%;height:200%;background-repeat:repeat-y;background-size:100% 50%;will-change:transform}
+body.th-noel .nb-far{background-image:url(bg/snow-far.webp);-webkit-animation:nbfall 70s linear infinite;animation:nbfall 70s linear infinite}
+body.th-noel .nb-mid{background-image:url(bg/snow-mid.webp);-webkit-animation:nbfall2 38s linear infinite;animation:nbfall2 38s linear infinite}
+body.th-noel .nb-near{background-image:url(bg/snow-near.webp);-webkit-animation:nbfall3 21s linear infinite;animation:nbfall3 21s linear infinite}
+@-webkit-keyframes nbfall{from{-webkit-transform:translate3d(0,0,0)}to{-webkit-transform:translate3d(0,50%,0)}}@keyframes nbfall{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,50%,0)}}
+@-webkit-keyframes nbfall2{from{-webkit-transform:translate3d(0,0,0)}to{-webkit-transform:translate3d(-1.5rem,50%,0)}}@keyframes nbfall2{from{transform:translate3d(0,0,0)}to{transform:translate3d(-1.5rem,50%,0)}}
+@-webkit-keyframes nbfall3{from{-webkit-transform:translate3d(0,0,0)}to{-webkit-transform:translate3d(2.5rem,50%,0)}}@keyframes nbfall3{from{transform:translate3d(0,0,0)}to{transform:translate3d(2.5rem,50%,0)}}

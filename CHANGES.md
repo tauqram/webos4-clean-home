@@ -388,6 +388,19 @@ Tested in the build container: nightoff.sh window parsing and the on/off decisio
 NOT verified on the TV: the local hour from `com.palm.systemservice/time/getSystemTime` (falls back to `date`), that LG honours a quickStartMode change made a minute before power-off,
 and whether our loops keep running in Quick Start+ standby (the log line "nightoff: still running at ..h while the TV is in ..." answers that; if they do, a TV left in standby at 22h could later be powered down for real: not built).
 
+## Release 2026.11.06.3 (2026-11-06, Sam's C9: Christmas season theme "nuit de neige"; same branch, NOT on main)
+
+| What | Where | Undo |
+|---|---|---|
+| Season theme Noël, active 1 Dec - 6 Jan when the theme is "auto" | `THEMES.noel` + `SEASONS` in `tv/launcher/themes.js`; CSS in `backgrounds.css` (`tools/make-backgrounds.py`) | empty `SEASONS`, or pick another theme |
+| Pictures computed on the PC (blue night 1920x1080, three transparent snow layers 960x540 shown 2x) | `tv/launcher/bg/*.webp` (about 50 KB in all), made by `tools/make-season-backgrounds.py` (numpy + Pillow, fixed seeds) | delete the folder with the theme |
+| RAM copy of the launcher gets `bg/*.webp` | `ram_sync` in `tv/common.sh` | revert the lines |
+
+Made with the method of the design-resources doc (abstract only, rendered on the PC, grain baked in, every full-screen shot critiqued
+before sending). The snow layers are two pictures tall and slide down one picture (70 s / 38 s / 21 s, transform only), paused with the
+screensaver; decoded size about 8 MB for the base + 2 MB per snow layer. Verified in the headless preview (screenshot + 16 s video, no seam).
+NOT verified on the TV (GPU cost of three full-screen moving layers on Chromium 53, memory).
+
 ## Release 2026.11.06.2 (2026-11-06, Sam's C9: smoother 6 and 9; same branch, NOT on main)
 
 | What | Where | Undo |

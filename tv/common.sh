@@ -44,6 +44,9 @@ ram_sync() {
   # the Inter font (SIL OFL) used by the launcher
   mkdir -p "$RAMDIR/fonts" || return 1
   for f in "$D"/launcher/fonts/*.woff2; do [ -f "$f" ] || continue; cp "$f" "$RAMDIR/fonts/" || return 1; done
+  # pictures of the season themes (computed on the PC by tools/make-season-backgrounds.py)
+  mkdir -p "$RAMDIR/bg" || return 1
+  for f in "$D"/launcher/bg/*.webp; do [ -f "$f" ] || continue; cp "$f" "$RAMDIR/bg/" || return 1; done
   # the overlays (Settings, Inputs) are the same page started in another mode (the mode is chosen by the file name: see MODE in app.js)
   mkhtml settings Settings "$RAMDIR/settings.html" || return 1
   mkhtml inputs Inputs "$RAMDIR/inputs.html" || return 1
