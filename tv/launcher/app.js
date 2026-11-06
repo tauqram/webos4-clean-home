@@ -395,11 +395,11 @@ function blDim(){
 function blRestore(){ clearInterval(blT); if (blOn) { blOn = false; api('/api/backlight?v=restore', noop, 15000); } }
 function saverStart(){
   if (saverOn || document.hidden || mstack.length || settingsOn || SETMODE) return;
-  saverOn = true; lastT = lastD = ''; tick(); wxRender();
+  clearTimeout(saverStop.t); saverOn = true; lastT = lastD = ''; tick(); wxRender();
   // free the Home background while the screensaver runs: two big photos at once would make the TV swap
   ['bgA', 'bgB'].forEach(function(id){ var l = $(id); l.className = 'bgl'; layerStage(l).lastChild.removeAttribute('src'); }); setBodyBg(false);
   var withPhotos = S.saver.photos && photos.length > 0 && !LOWMEM;
-  $('saver').className = 'on' + (withPhotos ? '' : ' nophoto') + (S.saver.clock === false ? ' noclock' : '') + (withPhotos || S.saver.fx === 'none' ? '' : ' fxon'); cls(document.body, 'saving', true);
+  $('saver').className = 'on sv' + (withPhotos ? '' : ' nophoto') + (S.saver.clock === false ? ' noclock' : '') + (withPhotos || S.saver.fx === 'none' ? '' : ' fxon'); cls(document.body, 'saving', true);
   $('sdim').style.opacity = ((S.saver.dim === undefined ? 30 : S.saver.dim) / 100);
   blDim(); api('/api/history?v=saver', noop);      // Back forgets where you were, if the options say so
   $('scrimS').style.display = withPhotos ? 'block' : 'none';
@@ -409,10 +409,20 @@ function saverStart(){
 }
 function saverStop(){
   if (!saverOn) return;
-  saverOn = false; clearTimeout(slideT); clearTimeout(driftT); $('saver').className = ''; cls(document.body, 'saving', false);
-  if (window.Theme) Theme.saverFxStop(); $('fx').style.display = 'none'; $('sdim').style.opacity = 0; blRestore();
-  var sv = svStages(); sv[0].className = 'stage'; sv[1].className = 'stage';
-  var s = $('sinfo'); s.style.left = ''; s.style.bottom = '';
+  // leaving: the saver keeps exactly its look (clock, animation, dim) and only fades out over Home (class 'leaving'
+  // instead of 'on'); everything is reset once it is invisible. Before, the clock fell back to other styles and
+  // grew on a bare black screen during the fade (Sam, 2026-11-06).
+  saverOn = false; clearTimeout(slideT); clearTimeout(driftT); cls(document.body, 'saving', false);
+  var sa = $('saver'); sa.className = sa.className.replace(/\bon\b/, 'leaving');
+  if (window.Theme) Theme.saverFxStop(); blRestore();
+  var sv = svStages();
+  clearTimeout(saverStop.t);
+  saverStop.t = setTimeout(function(){
+    if (saverOn) return;
+    sa.className = ''; $('fx').style.display = 'none'; $('sdim').style.opacity = 0;
+    sv[0].className = 'stage'; sv[1].className = 'stage';
+    var s = $('sinfo'); s.style.left = ''; s.style.bottom = '';
+  }, 800);
   setTimeout(function(){ if (!saverOn) { sv[0].lastChild.removeAttribute('src'); sv[1].lastChild.removeAttribute('src'); } }, 1500);
   if (photos.length && S.bg.on) setTimeout(function(){ if (!saverOn) bgShow(bgIx < 0 ? 0 : bgIx); }, 200);
 }

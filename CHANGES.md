@@ -550,3 +550,7 @@ Sam's choice A. Last block of `index.html` (`#saver.on #sinfo ...`, wins over th
   revert.sh; flag `state/saverhide-off` disables it. LG's file content is never committed.
 - Tested: sh -n, the awk edit on the excerpt printed by tools/lg-saver-dump.sh (3 lines changed, a non-matching file refused). NOT yet on the TV.
 - Undo: `sh saverhide.sh undo` (or touch state/saverhide-off).
+
+### 2026.11.06.18 - Screensaver exit: clean fade
+
+On exit the saver used to drop its classes at once (`className = ''`), so during the 1.2 s fade the clock fell back to the old #sinfo styles (it grew) and the animation/dim vanished (bare black). Now `saverStop()` swaps `on` for `leaving` (`#saver.leaving`: opacity 0 in 0.7 s, still visible), keeps every other class (the clock rules now key on the permanent class `sv`), and resets the classes, canvas, dim and photo stages 0.8 s later unless the saver restarted (`saverStop.t`). Verified in headless Chromium (frames of the fade). Undo: revert the commit.

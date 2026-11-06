@@ -1,5 +1,13 @@
 [
   {
+    "v": "2026.11.06.18",
+    "date": "2026-11-06",
+    "title": "Sortie de veille plus douce",
+    "notes": [
+      "Quand on quitte la veille, elle s'efface simplement en fondu vers l'accueil, en un peu moins d'une seconde. L'heure ne grossit plus et l'écran ne passe plus par un fond noir vide."
+    ]
+  },
+  {
     "v": "2026.11.06.17",
     "date": "2026-11-06",
     "title": "L'écran de veille LG devient invisible",
