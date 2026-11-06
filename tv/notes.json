@@ -1,5 +1,13 @@
 [
   {
+    "v": "2026.11.06.23",
+    "date": "2026-11-06",
+    "title": "Icône choisie : seulement l'ombre",
+    "notes": [
+      "Le fin liseré clair autour de l'icône choisie est retiré : elle grossit et flotte au-dessus de son ombre, rien de plus."
+    ]
+  },
+  {
     "v": "2026.11.06.22",
     "date": "2026-11-06",
     "title": "Veille : plus de retour à l'accueil",

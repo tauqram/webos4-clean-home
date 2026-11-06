@@ -574,3 +574,7 @@ Sam saw a flicker and "two savers" (back to Home, then another look). Cause: our
   page came back and kept / restarted ours; ours still on = nothing to do (`saver-now` removed); otherwise it relaunches Home as before. Logs say which.
 - `backlight.sh restore` writes `/tmp/saver-off.at` (uptime, RAM only) when our saver was on.
 - Tested: sh -n, release-check. NOT yet on the TV. Undo: revert the commit.
+
+### 2026.11.06.23 - No light edge on the focused icon
+
+Sam: the lit top edge serves no purpose; the shadow is enough. Removed `.tile .ic:after` (inset light edge) from `index.html`. Undo: revert the commit.
