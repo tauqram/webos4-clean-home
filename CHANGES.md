@@ -527,3 +527,12 @@ Verified in headless Chromium at 3840x2160 (dpr 2): rendering, steps, fuchsia, n
 ### 2026.11.06.14 - Screensaver clock: centred, fixed
 
 Sam's choice A. Last block of `index.html` (`#saver.on #sinfo ...`, wins over the older #sinfo rules): the Home clock typeface (ClockBricolage 800, or the chosen clock font), 13rem, 86 % white, centred 3.4rem above the bottom, date + weather (no hi/lo/place) on one 2rem line, 58 % white. `app.js` `drift()` no longer jumps the block around every 30 s: it shifts it by 1 CSS px every 3 minutes along a 4 x 4 px square (pixel-shift against OLED marking), in photo mode too. Verified in headless Chromium at 4K with the three looks. Undo: revert the commit.
+
+### 2026.11.06.15 - Power fix v3: unstick tvpower inside the swap, before our saver starts
+- .13 result on the C9: tvpower asked our saverdeny client (`{"timestamp":"154631299","instantBoot":"on"}`), accepted `ack:false`
+  (`returnValue:true`) and launched LG's saver 3 s later anyway; tvpower stuck again. saverdeny.sh is no longer started (kept as a record).
+- `saver-take.sh`: after closing LG's saver it waits until SAM no longer lists it (<= 3 s), runs `release swap` (relaunch LG's saver, wait for plain
+  `Active`, close it; no Home relaunch, ignores /tmp/saver-on), and only then writes /tmp/saver-now and launches Home. Our saver starts ~2-3 s later
+  than before but is not interrupted. Watchdog fallback unchanged (never while our saver is on).
+- Tested: sh -n, release-check, stubbed lun on Linux. To verify on the TV: idle 5 min on Home, log shows `released=yes ... (swap)`, getPowerState
+  without `processing`, Power instant.

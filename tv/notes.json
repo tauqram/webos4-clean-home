@@ -1,5 +1,16 @@
 [
   {
+    "v": "2026.11.06.15",
+    "date": "2026-11-06",
+    "title": "Extinction rapide, nouvelle méthode",
+    "notes": [
+      "La demande faite à LG dans la version précédente était ignorée : la télé restait bloquée et l'extinction lente.",
+      "Maintenant, la télé est débloquée au moment même où notre écran de veille remplace celui de LG, avant qu'il démarre. Il n'est donc plus interrompu.",
+      "Notre écran de veille apparaît environ 2 secondes plus tard qu'avant.",
+      "C'est nouveau et encore en observation : si l'extinction redevient lente, dites-le."
+    ]
+  },
+  {
     "v": "2026.11.06.14",
     "date": "2026-11-06",
     "title": "Nouvelle horloge de veille",

@@ -18,10 +18,10 @@ stuck() { p=$(lun luna://com.webos.service.tvpower/power/getPowerState '{}' | tr
 saver_up() { lun luna://com.webos.applicationManager/running '{}' | grep -q "\"id\": *\"$SAVER\""; }
 if [ "$1" = release ]; then
   [ -e "$D/DISABLE" ] && exit 0
-  [ -e /tmp/saver-on ] && exit 0                                   # never while OUR screensaver is on screen: relaunching LG's saver would interrupt it (Sam, .12)
+  [ "$2" != swap ] && [ -e /tmp/saver-on ] && exit 0               # never while OUR screensaver is on screen: relaunching LG's saver would interrupt it (Sam, .12)
   stuck || { rm -f /tmp/ssr-seen; exit 0; }
   saver_up && exit 0                                               # LG's saver is really there: tvpower is not stuck, the swap will deal with it
-  if [ "$2" != now ]; then
+  if [ "$2" != now ] && [ "$2" != swap ]; then
     n=$(cut -d. -f1 /proc/uptime); s=$(cat /tmp/ssr-seen 2>/dev/null)
     [ -n "$s" ] || { echo "$n" > /tmp/ssr-seen; exit 0; }
     [ $((n - s)) -ge 15 ] || exit 0
@@ -36,7 +36,7 @@ if [ "$1" = release ]; then
   sleep 1
   [ $ok = yes ] && saver_up && lun luna://com.webos.applicationManager/closeByAppId "{\"id\":\"$SAVER\"}" >/dev/null     # only once tvpower has let go
   now=$(lun luna://com.webos.applicationManager/getForegroundAppInfo '{}' | sed -n 's/.*"appId" *: *"\([^"]*\)".*/\1/p' | head -1)
-  [ "$fg" = "$HOME_ID" ] && [ "$now" != "$HOME_ID" ] && lun luna://com.webos.applicationManager/launch "{\"id\":\"$HOME_ID\"}" >/dev/null
+  [ "$2" != swap ] && [ "$fg" = "$HOME_ID" ] && [ "$now" != "$HOME_ID" ] && lun luna://com.webos.applicationManager/launch "{\"id\":\"$HOME_ID\"}" >/dev/null
   log "saver-take: power service was stuck in 'Screen Saver Ready' ($2), relaunched LG's saver once: released=$ok after ${i}s (front: $fg -> $now)"
   rmdir /tmp/saver-unstick.lock
   exit 0
@@ -53,6 +53,11 @@ now=$(cut -d. -f1 /proc/uptime); last=$(cat /tmp/saver-take.last 2>/dev/null || 
 [ $((now - last)) -ge 10 ] || exit 0
 echo $now > /tmp/saver-take.last
 log "saver-take: LG's screensaver appeared, showing ours"
-up > /tmp/saver-now
 lun luna://com.webos.applicationManager/closeByAppId '{"id":"com.webos.app.screensaver"}' >/dev/null
+# free LG's power service BEFORE our screensaver starts (2026.11.06.15): closing LG's saver this early leaves tvpower in "Screen Saver Ready"
+# (slow Power key, full shutdown). Relaunching LG's saver once frees it within a second and the saver leaves unseen; done here, before Home and
+# our saver come up, it no longer interrupts our screensaver (as the .12 version did 2 s later). Our screensaver therefore starts about 2-3 s later.
+i=0; while [ $i -lt 6 ] && saver_up; do usleep 500000; i=$((i+1)); done
+sh "$0" release swap
+up > /tmp/saver-now
 lun luna://com.webos.applicationManager/launch "{\"id\":\"$HOME_ID\"}" >/dev/null

@@ -6,6 +6,8 @@
 # tvpowerd offers registerScreenSaverRequest / responseScreenSaverRequest: a registered client is asked before the saver starts. Registering was
 # accepted on the C9 ({"subscribed":true}); the request message itself has NOT been seen yet, so every message is logged (first 300 characters)
 # and so is our answer, to learn its exact shape. On other inputs (no signal, ...) we answer yes: LG's saver starts and saver-take.sh swaps it as before.
+# RESULT on the C9 (2026.11.06.13): tvpower asked ({"timestamp":"154631299","instantBoot":"on"}), took our ack:false ({"returnValue":true}) and
+# launched LG's saver 3 s later anyway: the answer is ignored. NOT started any more (home-on.sh); kept as a record and for further tests.
 # Undo: `sh saverdeny.sh stop` (also run by home-off.sh / revert.sh); nothing is written outside /tmp and our log.
 . /media/developer/tv-debloat/common.sh
 PIDF=/tmp/saverdeny.pid; NAME=tvdebloat
