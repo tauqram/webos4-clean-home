@@ -536,3 +536,8 @@ Sam's choice A. Last block of `index.html` (`#saver.on #sinfo ...`, wins over th
   than before but is not interrupted. Watchdog fallback unchanged (never while our saver is on).
 - Tested: sh -n, release-check, stubbed lun on Linux. To verify on the TV: idle 5 min on Home, log shows `released=yes ... (swap)`, getPowerState
   without `processing`, Power instant.
+
+### 2026.11.06.16 - Swap waits for tvpower before closing LG's saver (one short flash instead of two)
+- .15 verified on the C9: log `released=yes after 1s (swap)`, getPowerState plain `Active`. But Sam saw LG's saver, then ours.
+- `saver-take.sh` now waits (0.2 s steps, at most 2 s) until tvpower leaves `Active / Screen Saver Ready` before closing LG's saver, logs
+  `closed LG's saver after X s (tvpower free|still waiting)`, and only runs `release swap` if it is still stuck. Unverified on the TV.

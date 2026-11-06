@@ -53,10 +53,13 @@ now=$(cut -d. -f1 /proc/uptime); last=$(cat /tmp/saver-take.last 2>/dev/null || 
 [ $((now - last)) -ge 10 ] || exit 0
 echo $now > /tmp/saver-take.last
 log "saver-take: LG's screensaver appeared, showing ours"
+# Let tvpower see LG's saver start BEFORE closing it (2026.11.06.16): closed too early, tvpower stays in "Active / Screen Saver Ready" (slow Power key,
+# full shutdown). Wait (0.2 s steps, at most 2 s) until it leaves that state, then close. The .15 version closed at once and relaunched the saver to
+# free tvpower, so LG's saver flashed twice; this way it shows once, briefly. If tvpower is still stuck after the close, `release swap` frees it
+# the .15 way, still before our screensaver starts (so ours is never interrupted).
+i=0; while [ $i -lt 10 ] && stuck; do usleep 200000; i=$((i+1)); done
 lun luna://com.webos.applicationManager/closeByAppId '{"id":"com.webos.app.screensaver"}' >/dev/null
-# free LG's power service BEFORE our screensaver starts (2026.11.06.15): closing LG's saver this early leaves tvpower in "Screen Saver Ready"
-# (slow Power key, full shutdown). Relaunching LG's saver once frees it within a second and the saver leaves unseen; done here, before Home and
-# our saver come up, it no longer interrupts our screensaver (as the .12 version did 2 s later). Our screensaver therefore starts about 2-3 s later.
+log "saver-take: closed LG's saver after $((i / 5)).$((i % 5 * 2)) s ($(stuck && echo 'tvpower still waiting' || echo 'tvpower free'))"
 i=0; while [ $i -lt 6 ] && saver_up; do usleep 500000; i=$((i+1)); done
 sh "$0" release swap
 up > /tmp/saver-now

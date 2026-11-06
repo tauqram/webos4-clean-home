@@ -1,5 +1,14 @@
 [
   {
+    "v": "2026.11.06.16",
+    "date": "2026-11-06",
+    "title": "Moins de veille LG à l'écran",
+    "notes": [
+      "Quand la télé lance sa propre veille LG, on la laisse maintenant s'afficher une seule fois, très brièvement, avant de la remplacer par la nôtre (avant, elle clignotait deux fois).",
+      "L'extinction rapide reste assurée."
+    ]
+  },
+  {
     "v": "2026.11.06.15",
     "date": "2026-11-06",
     "title": "Extinction rapide, nouvelle méthode",
