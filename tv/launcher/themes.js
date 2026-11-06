@@ -14,9 +14,7 @@ var THEMES = {
   degrade:  {name: 'Dégradé',   accent: '#b9a8ff', fx: 'fireworks', layers: []},
   lignes:   {name: 'Lignes',    accent: '#ffc58f', fx: 'fireworks', layers: []},
   studio:   {name: 'Studio',    accent: '#f2f2f0', fx: 'fireworks', soft: true, layers: []},
-  noel:     {name: 'Noël',      accent: '#cfe0ff', fx: 'fireworks', layers: ['snow far', 'snow mid', 'snow near']},
-  sable:    {name: 'Sable',     accent: '#ffc98a', fx: 'fireworks'},
-  azion:    {name: 'Azion',     accent: '#ecebe8', fx: 'fireworks', soft: true}   // soft: bursts keep to the theme's muted colours
+  noel:     {name: 'Noël',      accent: '#cfe0ff', fx: 'fireworks', layers: ['snow far', 'snow mid', 'snow near']}
 };
 // layers: the divs a theme draws in #themebg (each word becomes class nb-<word>), styled by backgrounds.css,
 // which tools/make-backgrounds.py generates. Themes without layers use the .tb1-.tb3 divs styled in index.html.
@@ -127,7 +125,6 @@ var PALETTES = {
   noir: ['#ffffff', '#ffd27a', '#ff6b6b', '#7ab8ff'],
   aurore: ['#7cf5d0', '#5ad1ff', '#c38bff', '#ffffff'],
   bleunuit: ['#8fb4ff', '#ffffff', '#ffd27a', '#ff8fd0'],
-  sable: ['#ffc98a', '#ff9a5a', '#fff1d6', '#ff6b6b'],
   horizon: ['#a9c4ff', '#ffffff', '#ffe2b8', '#7ab8ff'],
   ocean: ['#bcd2f5', '#ffffff', '#8fd8e8', '#ffd27a'],
   dunes: ['#ffb38a', '#ffd9a0', '#fff1d6', '#ff7b6b'],
@@ -135,7 +132,6 @@ var PALETTES = {
   lignes: ['#ffc58f', '#ffffff', '#ff9a6a', '#ffe7c2'],
   noel: ['#ffffff', '#cfe0ff', '#ffd27a', '#ff6b6b'],
   studio: ['#f2f2f0', '#d8d6d0', '#b9b7b0', '#ffffff'],
-  azion: ['#d97757', '#ecebe8', '#88d1a2', '#e5be77', '#e796a8', '#bbaceb', '#7fafe2']   // Azion's terracotta, off-white and softened colours of meaning
 };
 var running = null;
 function saverFx(cv, choice){
