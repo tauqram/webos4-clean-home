@@ -460,3 +460,12 @@ NOT verified on the TV: smoothness of the opacity fade over 13+ tiles on Chromiu
 | Render probe: on the first focus move logs `perf page WxH dpr= screen=`, then for 1 s after each of the first 12 moves `perf fps= worst=ms` (requestAnimationFrame) into `/tmp/launcher-page.log` | `app.js` (`perfProbe`) | revert the commit |
 
 Tested in the build container only: frame-by-frame capture at 60 fps (4K video in project files `webos4-clean-home-apercu/selection/`). NOT verified on the TV: real fps, the page's devicePixelRatio, whether the rounded clip of `.sheen` lags a frame while the tile scales (seen before on the icon itself).
+
+### 2026.11.06.6 - Focus v3: no sweeping band, slow sway and drifting light (Apple HIG)
+
+| Change | Where | Undo |
+|---|---|---|
+| Removed the band of light that crossed the icon on arrival (Sam: looked cheap; Apple's HIG describes no such sweep). `.sheen i` is now a soft radial spot (160 % of the icon, clipped by `.sheen`) that drifts slowly (`tvglow`, 9 s loop) | `index.html` | revert the commit |
+| After the arrival tilt, the focused icon sways gently (`tvsway`: rotateY +-2.2 deg, rotateX +-1.2 deg, 9 s loop, scale 1.13), as Apple's HIG says a focused tvOS icon "gently sways while the surface illuminates". The resting `.ic:after` now only draws the light edge | `index.html` | revert the commit |
+
+The sway and the light run continuously on one tile while Home is shown (compositor-only transforms). Tested in the build container (60 fps frame-by-frame 4K video in project files `webos4-clean-home-apercu/selection/reflet-v3-*`). NOT verified on the TV: fps, and whether the endless animation costs anything noticeable.

@@ -1,5 +1,14 @@
 [
   {
+    "v": "2026.11.06.6",
+    "date": "2026-11-06",
+    "title": "Sélection des icônes : lumière plus naturelle",
+    "notes": [
+      "Le reflet qui traversait l'icône est retiré : il faisait bon marché.",
+      "À la place, comme sur l'Apple TV, l'icône choisie se balance très lentement et une lumière douce glisse à sa surface, sans à-coup."
+    ]
+  },
+  {
     "v": "2026.11.06.5",
     "date": "2026-11-06",
     "title": "Sélection des icônes : reflet animé",
