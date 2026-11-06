@@ -8,7 +8,7 @@ var THEMES = {
   noir:     {name: 'Noir OLED', accent: '#ffffff', fx: 'fireworks'},
   aurore:   {name: 'Aurore',    accent: '#7cf5d0', fx: 'fireworks'},
   bleunuit: {name: 'Bleu nuit', accent: '#8fb4ff', fx: 'fireworks', layers: ['milky', 'hz', 'full s1', 'full s2 tw1', 'full s3 tw2', 'sh sh1', 'sh sh2', 'full hill', 'grain']},
-  horizon:  {name: 'Horizon',   accent: '#a9c4ff', fx: 'fireworks', layers: ['sky', 'full s1', 'full s2 tw1', 'full s3 tw2', 'sh sh1', 'sh sh2', 'lit', 'planet', 'sun', 'grain']},
+  horizon:  {name: 'Horizon',   accent: '#a9c4ff', fx: 'fireworks', layers: ['full s1', 'full s2 tw1', 'full s3 tw2', 'sh sh1', 'sh sh2', 'sun']},
   ocean:    {name: 'Océan',     accent: '#bcd2f5', fx: 'fireworks', layers: ['halo', 'full s1 tw1', 'moon', 'full ref shim', 'grain']},
   dunes:    {name: 'Dunes',     accent: '#ffb38a', fx: 'fireworks', layers: ['full s1 tw1', 'glow', 'moon', 'full dunes', 'grain']},
   degrade:  {name: 'Dégradé',   accent: '#b9a8ff', fx: 'fireworks', layers: ['m m1', 'm m2', 'm m3', 'fade', 'grain']},

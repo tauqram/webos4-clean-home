@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds tv/launcher/backgrounds.css: the vector Home backgrounds (Horizon, Bleu nuit, Dunes, Ocean, Degrade, Lignes, Studio).
+"""Builds tv/launcher/backgrounds.css: the Home backgrounds (Horizon, Bleu nuit, Dunes, Ocean, Degrade, Lignes, Studio).
 
 Run on the PC after changing anything here:   python3 tools/make-backgrounds.py
 Everything is generated from fixed random seeds, so the output is the same on every run (no binary assets in the repo).
@@ -24,19 +24,21 @@ def uri(svg):
     return 'url("data:image/svg+xml,' + urllib.parse.quote(svg, safe=" :/=',.()-_") + '")'
 
 
-def stars(n, ymax, rmin, rmax, seed, cols=('#ffffff', '#dfe8ff', '#fff4e0', '#cfe0ff')):
+def stars(n, ymax, rmin, rmax, seed, cols=('#ffffff', '#dfe8ff', '#fff4e0', '#cfe0ff'), keep=None):
     r = random.Random(seed); c = []
     for _ in range(n):
         x = r.uniform(0, 1920); y = ymax * (r.random() ** 1.35)      # more stars higher up
+        if keep and not keep(x, y): continue
         rad = rmin + (rmax - rmin) * (r.random() ** 3); op = 0.35 + 0.65 * r.random()
         c.append("<circle cx='%.0f' cy='%.0f' r='%.2f' fill='%s' fill-opacity='%.2f'/>" % (x, y, rad, r.choice(cols), op))
     return uri(SVG + ''.join(c) + '</svg>')
 
 
-def bright(n, ymax, seed):
+def bright(n, ymax, seed, keep=None):
     r = random.Random(seed); c = []
     for _ in range(n):
         x = r.uniform(60, 1860); y = ymax * (r.random() ** 1.2); s = r.uniform(1.6, 2.4)
+        if keep and not keep(x, y): continue
         c.append("<circle cx='%.0f' cy='%.0f' r='%.1f' fill='#fff'/><circle cx='%.0f' cy='%.0f' r='%.1f' fill='#cfe0ff' fill-opacity='.08'/>" % (x, y, s, x, y, s * 2.4))
     return uri(SVG + ''.join(c) + '</svg>')
 
@@ -123,15 +125,22 @@ def layer(theme, name, bg):
     css.append('body.th-%s #nbg .nb-%s{background-image:%s}' % (theme, name, bg))
 
 
-# ---- Horizon: the rim of a dark planet behind the clock, sunrise light on its edge, twinkling stars, shooting stars
+# ---- Horizon: the night side of a planet whose atmosphere is lit from behind; sky, rim and planet are a picture computed on
+# the PC (render-backgrounds.py: real light falloff, 4K copy); stars, shooting stars and the breathing sunrise stay live on top.
+def above_rim(x, y):      # same ellipse as RIM in render-backgrounds.py: stars only in the sky, never on the planet
+    u = (x - 960.0) / 3840.0
+    return y < 280.0 + 3200.0 - 3200.0 * math.sqrt(1 - u * u) - 6
+
+
+def hires(name):
+    return 'url(bg/%s.webp);background-image:-webkit-image-set(url(bg/%s.webp) 1x,url(bg/%s@2x.webp) 2x)' % (name, name, name)
+
+
 css += ['body.th-horizon{--bg:#000;--card:#0d1018}',
-        'body.th-horizon #themebg{background:#000}',
-        'body.th-horizon .nb-sky{left:0;top:0;width:100%;height:100%;background:radial-gradient(ellipse 70% 40% at 50% 32%,rgba(50,80,160,.16),rgba(0,0,0,0) 70%)}',
-        'body.th-horizon .nb-planet{left:-150%;width:400%;top:17.5rem;height:400rem;border-radius:50%;background:#030406;box-shadow:0 -1rem 4.5rem rgba(80,130,255,.28),0 -.25rem 1.2rem rgba(160,195,255,.32),inset 0 .14rem 0 rgba(215,228,255,.85),inset 0 1.4rem 3.4rem rgba(90,140,255,.14)}',
-        'body.th-horizon .nb-lit{left:0;top:0;width:100%;height:100%;background:radial-gradient(ellipse 34% 9% at 72% 28%,rgba(150,190,255,.12),rgba(0,0,0,0) 70%)}',
-        # the sunrise: a soft glow on the rim that slowly breathes (no hard straight streak: the rim is curved)
-        'body.th-horizon .nb-sun{left:72%;top:18.4rem;width:64rem;height:9rem;margin:-4.5rem 0 0 -32rem;background:radial-gradient(ellipse 50% 50% at 50% 50%,rgba(255,246,232,.55) 0%,rgba(200,220,255,.26) 7%,rgba(110,150,255,.08) 32%,rgba(0,0,0,0) 70%);' + anim('nbbreathe 9s ease-in-out infinite alternate') + '}']
-layer('horizon', 's1', stars(260, 560, .6, 1.3, 1)); layer('horizon', 's2', stars(90, 520, .8, 1.7, 2)); layer('horizon', 's3', bright(9, 470, 3))
+        'body.th-horizon #themebg{background:#000 0 0/100% 100% no-repeat;background-image:' + hires('horizon') + '}',
+        # the sunrise bloom: 1400x520 px picture centred on the rim at x 1382 (72 %), y 299 px
+        'body.th-horizon .nb-sun{left:71.98%;top:18.71rem;width:87.5rem;height:32.5rem;margin:-16.25rem 0 0 -43.75rem;background:0 0/100% 100% no-repeat;background-image:' + hires('horizon-sun') + ';' + anim('nbbreathe 9s ease-in-out infinite alternate') + '}']
+layer('horizon', 's1', stars(260, 560, .6, 1.3, 1, keep=above_rim)); layer('horizon', 's2', stars(90, 520, .8, 1.7, 2, keep=above_rim)); layer('horizon', 's3', bright(9, 470, 3, keep=above_rim))
 
 # ---- Bleu nuit: calm deep-blue sky, a faint Milky Way, a hill with a thin blue rim
 css += ['body.th-bleunuit{--card:#111a30}',
@@ -179,7 +188,7 @@ css += ['body.th-studio{--card:#1a1b1e}',
         'body.th-studio .nb-vig{left:0;top:0;width:100%;height:100%;background:radial-gradient(ellipse 85% 75% at 50% 35%,rgba(0,0,0,0) 55%,rgba(0,0,0,.45))}']
 
 # ---- Noel (season theme, 1 Dec - 6 Jan with the theme on "auto"): a calm blue night and slow snow over the whole screen.
-# The pictures come from tools/make-season-backgrounds.py (computed on the PC); here they only slide down (transform).
+# The pictures come from tools/render-backgrounds.py (computed on the PC); here they only slide down (transform).
 # Each snow layer is two pictures tall and moves by exactly one picture, so the loop has no seam.
 css += ['body.th-noel{--card:#0f1a2c}',
         'body.th-noel #themebg{background:#03060d url(bg/noel-base.webp) 0 0/100% 100% no-repeat;background-image:-webkit-image-set(url(bg/noel-base.webp) 1x,url(bg/noel-base@2x.webp) 2x)}',

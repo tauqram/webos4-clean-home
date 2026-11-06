@@ -395,6 +395,7 @@ and whether our loops keep running in Quick Start+ standby (the log line "nighto
 | Season theme Noël, active 1 Dec - 6 Jan when the theme is "auto" | `THEMES.noel` + `SEASONS` in `tv/launcher/themes.js`; CSS in `backgrounds.css` (`tools/make-backgrounds.py`) | empty `SEASONS`, or pick another theme |
 | Pictures computed on the PC (blue night 1920x1080, far snow 1920x1080, soft mid/near snow 960x540 shown 2x; 4K `@2x` copies of the base and far snow picked through `-webkit-image-set` only if the page is drawn at devicePixelRatio 2) | `tv/launcher/bg/*.webp` (about 220 KB in all), made by `tools/make-season-backgrounds.py` (numpy + Pillow, fixed seeds) | delete the folder with the theme |
 | RAM copy of the launcher gets `bg/*.webp` | `ram_sync` in `tv/common.sh` | revert the lines |
+| Horizon rebuilt as a computed picture (sky haze, atmosphere falloff, 1.1 px rim line, limb glow; `horizon.webp` + 4K `@2x`) plus a separate sunrise bloom (`horizon-sun.webp`, breathes 9 s); stars kept as vectors but only above the rim; the CSS planet/sky/lit/grain layers are gone | `tools/render-backgrounds.py` (renamed from make-season-backgrounds.py), `tools/make-backgrounds.py`, `THEMES.horizon.layers` | revert the commit |
 
 Made with the method of the design-resources doc (abstract only, rendered on the PC, grain baked in, every full-screen shot critiqued
 before sending). The snow layers are two pictures tall and slide down one picture (70 s / 38 s / 21 s, transform only), paused with the
