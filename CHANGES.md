@@ -554,3 +554,7 @@ Sam's choice A. Last block of `index.html` (`#saver.on #sinfo ...`, wins over th
 ### 2026.11.06.18 - Screensaver exit: clean fade
 
 On exit the saver used to drop its classes at once (`className = ''`), so during the 1.2 s fade the clock fell back to the old #sinfo styles (it grew) and the animation/dim vanished (bare black). Now `saverStop()` swaps `on` for `leaving` (`#saver.leaving`: opacity 0 in 0.7 s, still visible), keeps every other class (the clock rules now key on the permanent class `sv`), and resets the classes, canvas, dim and photo stages 0.8 s later unless the saver restarted (`saverStop.t`). Verified in headless Chromium (frames of the fade). Undo: revert the commit.
+
+### 2026.11.06.19 - No moving light, no ring in edit mode
+
+Sam: the drifting light looked like a torch, and the ring while moving an icon is not pretty. Removed `.sheen` (element in `mkTile`, CSS, `bg/focus-light.webp`, `tools/make-focus-light.py`); `.tile .ring` is hidden everywhere. Edit mode: the moved icon keeps the lifted shadow and its jiggle (`tvwob`), the other icons go to opacity .4. Tested in the preview (long press, move). Undo: revert the commit.

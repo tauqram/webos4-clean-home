@@ -1,5 +1,14 @@
 [
   {
+    "v": "2026.11.06.19",
+    "date": "2026-11-06",
+    "title": "Icônes : sans lumière ni contour",
+    "notes": [
+      "La lumière qui se promenait sur l'icône choisie est retirée : l'icône se soulève et se balance doucement, sans plus.",
+      "Quand on déplace une icône (appui long), le contour coloré a disparu : l'icône reste soulevée et frétille, et les autres s'effacent davantage pour qu'on voie bien laquelle bouge."
+    ]
+  },
+  {
     "v": "2026.11.06.18",
     "date": "2026-11-06",
     "title": "Sortie de veille plus douce",

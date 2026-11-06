@@ -215,8 +215,7 @@ function mkTile(a, big){
     ic.style.background ='linear-gradient(150deg, rgba(255,255,255,.12) 0%, rgba(7,8,12,.55) 100%), ' + glowFor(a);   // wide card tinted with the app's colour
     var tint = el('div', 'tint'); tint.style.background = glowFor(a); ic.appendChild(tint);      // a flat tint, used by themes that want it (Azion)
   }
-  var sh = el('div', 'sheen'); sh.appendChild(el('i'));      // the band of light that glides over the icon when it gets the focus
-  ic.appendChild(img); ic.appendChild(sh); ic.appendChild(el('div', 'ring')); t.appendChild(ic);
+  ic.appendChild(img); ic.appendChild(el('div', 'ring')); t.appendChild(ic);
   var nm = el('div', 'nm'); nm.textContent = a.title || a.id; t.appendChild(nm); t._app = a; return t;
 }
 function buildApps(list){
