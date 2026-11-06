@@ -266,6 +266,15 @@ function perfProbe(){
     if (ts - t0 < 1000) requestAnimationFrame(f); else dlog('perf fps=' + Math.round((n - 1) * 1000 / (ts - t0)) + ' worst=' + Math.round(worst) + 'ms'); }
   requestAnimationFrame(f);
 }
+// the same measure for the screensaver, 8 s after it starts (once its pictures are decoded), over 3 s: "perf saver <look> fps=.."
+var svPerfN = 0;
+function saverPerf(){
+  if (svPerfN >= 20 || !window.requestAnimationFrame) return; svPerfN++;
+  var name = window.Theme && Theme.saverName ? Theme.saverName() : '', n = 0, t0 = -1, last = 0, worst = 0;
+  function f(ts){ if (!saverOn) return; if (t0 < 0) t0 = ts; else worst = Math.max(worst, ts - last); last = ts; n++;
+    if (ts - t0 < 3000) requestAnimationFrame(f); else dlog('perf saver ' + name + ' dpr=' + (window.devicePixelRatio || 1) + ' fps=' + Math.round((n - 1) * 1000 / (ts - t0)) + ' worst=' + Math.round(worst) + 'ms'); }
+  requestAnimationFrame(f);
+}
 function focusItem(r, c, keepX){
   if (!rows.length) return;
   var oR = R, oC = C;
@@ -391,6 +400,7 @@ function saverStart(){
   $('scrimS').style.display = withPhotos ? 'block' : 'none';
   if (withPhotos) { pIx = (bgIx + 1) % photos.length; showNext(); } else { drift(); if (window.Theme) Theme.saverFx($('fx'), S.saver.fx, LOWMEM); }
   dlog('saver on photos=' + withPhotos);
+  setTimeout(function(){ if (saverOn) saverPerf(); }, 8000);
 }
 function saverStop(){
   if (!saverOn) return;

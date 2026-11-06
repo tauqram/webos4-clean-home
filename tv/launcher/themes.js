@@ -149,7 +149,7 @@ FX.eclipse = domFx('eclipse', '<div class="sv g"><div class="sv rot"><div class=
 FX.soie = domFx('soie', '<div class="sv s2"><div class="svi"></div></div><div class="sv s1"><div class="svi"></div></div>');
 var ROTATION = ['aurore', 'eclipse', 'soie'], rotIx = Math.floor(Math.random() * ROTATION.length);
 
-var running = null;
+var running = null, lastName = '';
 // choice: 'auto' (or the old 'theme') = the next of Aurore / Eclipse / Soie each time the saver starts; lowmem: the TV is
 // short of memory, so the lightest look (Eclipse, about 20 MB of pictures at 4K) replaces the two others.
 function saverFx(cv, choice, lowmem){
@@ -157,6 +157,7 @@ function saverFx(cv, choice, lowmem){
   var t = current || resolve('auto'), name = choice;
   if (!name || name === 'theme' || name === 'auto') { rotIx = (rotIx + 1) % ROTATION.length; name = ROTATION[rotIx]; }
   if (lowmem && (name === 'aurore' || name === 'soie')) name = 'eclipse';
+  lastName = name || '';
   if (name === 'none' || !FX[name]) return;
   if (FX[name].dom) { cv.style.display = 'none'; running = FX[name](); return; }
   cv.style.display = 'block';
@@ -164,5 +165,5 @@ function saverFx(cv, choice, lowmem){
 }
 function saverFxStop(){ if (running) { running.stop(); running = null; } }
 
-window.Theme = {apply: apply, resolve: resolve, options: options, saverFx: saverFx, saverFxStop: saverFxStop, list: THEMES};
+window.Theme = {apply: apply, resolve: resolve, options: options, saverFx: saverFx, saverFxStop: saverFxStop, saverName: function(){ return lastName; }, list: THEMES};
 })();

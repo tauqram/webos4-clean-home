@@ -497,3 +497,7 @@ Without gallery photos the screensaver now shows one of three looks instead of o
 - Horizontal slides use `steps()` so each step is half a CSS px = one 4K pixel: fine lines are never resampled.
 - The elements exist only while the saver runs (`#svfx`, built by `themes.js`, removed 1.4 s after the saver stops), so their pictures (decoded at 4K: Aurore about 40 MB, Éclipse about 20 MB, Soie about 40 MB) are in memory only then. With LOWMEM (memguard) Aurore / Soie are replaced by Éclipse. The dim veil (`#sdim`) is off over these looks (it is meant for photos).
 Verified in headless Chromium at 3840x2160 (dpr 2): rendering, steps, fuchsia, no page error. NOT verified on the TV: smoothness and memory (check with `grep perf /tmp/launcher-page.log`). Undo: revert the commit, or choose "Feux d'artifice" in Settings.
+
+### 2026.11.06.11 - Screensaver smoothness probe
+
+`app.js` `saverPerf()`: 8 s after the screensaver starts, counts frames for 3 s and logs `perf saver <look> dpr=.. fps=.. worst=..ms` to `/tmp/launcher-page.log` (at most 20 times per page life). `themes.js` exposes `Theme.saverName()`. Read with `./tv.sh 'grep perf /tmp/launcher-page.log | tail -15'`. Undo: revert the commit.
