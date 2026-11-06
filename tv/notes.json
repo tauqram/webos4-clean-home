@@ -1,5 +1,14 @@
 [
   {
+    "v": "2026.11.06.22",
+    "date": "2026-11-06",
+    "title": "Veille : plus de retour à l'accueil",
+    "notes": [
+      "Quand notre écran de veille est déjà affiché et que la télé lance la sienne (invisible) en arrière-plan, l'accueil n'est plus relancé : la veille en cours reste à l'écran.",
+      "Pas encore vérifié sur la télé : à confirmer après la mise à jour."
+    ]
+  },
+  {
     "v": "2026.11.06.21",
     "date": "2026-11-06",
     "title": "Noms des applis plus courts et toujours visibles",

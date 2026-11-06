@@ -52,7 +52,12 @@ sys.exit(0 if (s.get('saver') or {}).get('on', True) else 1)" 2>/dev/null || exi
 now=$(cut -d. -f1 /proc/uptime); last=$(cat /tmp/saver-take.last 2>/dev/null || echo -99)
 [ $((now - last)) -ge 10 ] || exit 0
 echo $now > /tmp/saver-take.last
-log "saver-take: LG's screensaver appeared, showing ours"
+# Was OUR screensaver on when LG's came (tvpower's own idle timer does not know about ours)? /tmp/saver-on exists while ours runs (backlight.sh);
+# if the page already stopped it because LG's window covered it, backlight.sh restore stamped /tmp/saver-off.at a moment ago.
+on_fresh() { [ -e /tmp/saver-on ] && [ -z "$(find /tmp/saver-on -mmin +1 2>/dev/null)" ]; }      # the page refreshes it every minute while ours runs
+ours=no; on_fresh && ours=yes
+o=$(cut -d. -f1 /tmp/saver-off.at 2>/dev/null); [ -n "$o" ] && [ $((now - o)) -le 6 ] && ours=yes
+log "saver-take: LG's screensaver appeared, showing ours (ours already on: $ours)"
 # Let tvpower see LG's saver start BEFORE closing it (2026.11.06.16): closed too early, tvpower stays in "Active / Screen Saver Ready" (slow Power key,
 # full shutdown). Wait (0.2 s steps, at most 2 s) until it leaves that state, then close. The .15 version closed at once and relaunched the saver to
 # free tvpower, so LG's saver flashed twice; this way it shows once, briefly. If tvpower is still stuck after the close, `release swap` frees it
@@ -63,4 +68,16 @@ log "saver-take: closed LG's saver after $((i / 5)).$((i % 5 * 2)) s ($(stuck &&
 i=0; while [ $i -lt 6 ] && saver_up; do usleep 500000; i=$((i+1)); done
 sh "$0" release swap
 up > /tmp/saver-now
-lun luna://com.webos.applicationManager/launch "{\"id\":\"$HOME_ID\"}" >/dev/null
+if [ $ours = yes ]; then
+  # 2026.11.06.22 (Sam: "ça a scintillé, deux veilles, retour à l'accueil, puis une autre veille"): relaunching Home made the page stop our running
+  # saver (webOSRelaunch) and start a fresh one. Home is still underneath LG's closed saver, so do not relaunch it: if the page kept its saver,
+  # nothing happens; if it stopped it when LG's window covered it, it is shown again and /tmp/saver-now restarts ours. Fallback after 3 s: nobody
+  # took /tmp/saver-now and our saver is not on -> relaunch Home the old way, so the TV can never stay on a bare Home without a saver.
+  i=0; while [ $i -lt 6 ] && [ -e /tmp/saver-now ]; do usleep 500000; i=$((i+1)); done
+  if [ ! -e /tmp/saver-now ]; then log "saver-take: Home came back by itself and restarted our saver"
+  elif on_fresh; then rm -f /tmp/saver-now; log "saver-take: our saver kept running, Home not relaunched"
+  else rm -f /tmp/saver-now; up > /tmp/saver-now; lun luna://com.webos.applicationManager/launch "{\"id\":\"$HOME_ID\"}" >/dev/null; log "saver-take: Home did not come back, relaunched it"
+  fi
+else
+  lun luna://com.webos.applicationManager/launch "{\"id\":\"$HOME_ID\"}" >/dev/null
+fi

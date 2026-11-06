@@ -20,7 +20,8 @@ case ${1:-status} in
         o=$(cat "$ORIG"); t=$lvl; [ $t -ge 5 ] || t=5; [ $t -le $o ] || t=$o
         touch "$ON"; { set_bl $t "$(cat "$DIMF" 2>/dev/null)" && log "backlight: $o -> $t"; };;
   hold) [ -e "$ORIG" ] && touch "$ON";;
-  restore) if [ -e "$ORIG" ]; then o=$(cat "$ORIG"); if set_bl "$o" "$(cat "$DIMF" 2>/dev/null)"; then rm -f "$ORIG" "$DIMF"; log "backlight: restored to $o"; fi; fi; rm -f "$ON";;
+  restore) [ -e "$ON" ] && up > /tmp/saver-off.at      # when our screensaver last ended: saver-take.sh tells "LG's saver came over ours" from "LG's saver on an idle Home"
+        if [ -e "$ORIG" ]; then o=$(cat "$ORIG"); if set_bl "$o" "$(cat "$DIMF" 2>/dev/null)"; then rm -f "$ORIG" "$DIMF"; log "backlight: restored to $o"; fi; fi; rm -f "$ON";;
   sweep) [ -e "$ORIG" ] || exit 0
         if [ ! -e "$ON" ] || [ -n "$(find "$ON" -mmin +3 2>/dev/null)" ]; then sh "$0" restore; fi;;
   status) [ -e "$ORIG" ] && echo "dimmed (original $(cat "$ORIG"), now $(get))" || echo "normal ($(get))";;

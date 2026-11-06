@@ -566,3 +566,11 @@ Sam saw a flicker and "two savers" (back to Home, then another look). Cause: our
 ### 2026.11.06.21 - Short app names that stay on screen
 
 `app.js`: `shortName()` (tile label only): `CFG.nameByTitle` override (`M6 TV Replay Streaming` -> `M6+`), else the store title cut at ` - `, ` – `, ` : `, ` | ` or `(`; runs of 5+ capitals become normal case (`CANAL+` -> `Canal+`; `HDMI`, `TV`, `TF1` untouched). `fitName()` (called from `focusItem`) slides the focused label (`position:relative; left`) so it stays 4 rem inside the screen edges. `index.html`: label `max-width:40rem` with an ellipsis. Tested in the preview (first icon of a row, last icon, very long name). Undo: revert the commit.
+
+### 2026.11.06.22 - Swap: no Home relaunch when our saver is already on
+- Complements the page fix of .20 (Sam's "deux veilles"): tvpower's own idle timer launches LG's (invisible) saver while ours is running.
+- `saver-take.sh`: notes whether ours was on (fresh `/tmp/saver-on`, or `/tmp/saver-off.at` stamped by `backlight.sh restore` in the last 6 s if the
+  page already stopped it). Then, after closing LG's saver, it writes `/tmp/saver-now` but does not relaunch Home: it waits up to 3 s; taken = the
+  page came back and kept / restarted ours; ours still on = nothing to do (`saver-now` removed); otherwise it relaunches Home as before. Logs say which.
+- `backlight.sh restore` writes `/tmp/saver-off.at` (uptime, RAM only) when our saver was on.
+- Tested: sh -n, release-check. NOT yet on the TV. Undo: revert the commit.
