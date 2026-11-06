@@ -1,5 +1,15 @@
 [
   {
+    "v": "2026.11.06.5",
+    "date": "2026-11-06",
+    "title": "Sélection des icônes : reflet animé",
+    "notes": [
+      "Quand on passe d'une icône à l'autre, la nouvelle s'incline très légèrement dans le sens du mouvement puis se pose, avec un mouvement souple.",
+      "Un reflet de lumière doux glisse sur l'icône depuis le côté d'où l'on arrive, comme une surface en verre.",
+      "L'accueil note maintenant sa définition d'affichage et sa fluidité (images par seconde) dans son journal, pour régler les animations au plus juste sur cette TV."
+    ]
+  },
+  {
     "v": "2026.11.06.4",
     "date": "2026-11-06",
     "title": "Sélection des icônes plus élégante",

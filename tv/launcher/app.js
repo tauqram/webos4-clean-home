@@ -215,7 +215,8 @@ function mkTile(a, big){
     ic.style.background ='linear-gradient(150deg, rgba(255,255,255,.12) 0%, rgba(7,8,12,.55) 100%), ' + glowFor(a);   // wide card tinted with the app's colour
     var tint = el('div', 'tint'); tint.style.background = glowFor(a); ic.appendChild(tint);      // a flat tint, used by themes that want it (Azion)
   }
-  ic.appendChild(img); ic.appendChild(el('div', 'ring')); t.appendChild(ic);
+  var sh = el('div', 'sheen'); sh.appendChild(el('i'));      // the band of light that glides over the icon when it gets the focus
+  ic.appendChild(img); ic.appendChild(sh); ic.appendChild(el('div', 'ring')); t.appendChild(ic);
   var nm = el('div', 'nm'); nm.textContent = a.title || a.id; t.appendChild(nm); t._app = a; return t;
 }
 function buildApps(list){
@@ -255,12 +256,24 @@ function setGlow(color){
   var a = $('glowA'), b = $('glowB'), n = glowSide ? a : b, o = glowSide ? b : a; glowSide = 1 - glowSide;
   n.style.background = 'radial-gradient(ellipse at 50% 0%, ' + color + ' 0%, rgba(0,0,0,0) 62%)'; n.className = 'on'; o.className = '';
 }
+// how the page really renders on this TV: drawing size and frames per second for 1 s after a focus move (first 12 moves), in /tmp/launcher-page.log
+var perfN = 0;
+function perfProbe(){
+  if (perfN >= 12 || !window.requestAnimationFrame) return;
+  if (!perfN++) dlog('perf page ' + innerWidth + 'x' + innerHeight + ' dpr=' + (window.devicePixelRatio || 1) + ' screen=' + screen.width + 'x' + screen.height);
+  var n = 0, t0 = -1, last = 0, worst = 0;
+  function f(ts){ if (t0 < 0) t0 = ts; else worst = Math.max(worst, ts - last); last = ts; n++;
+    if (ts - t0 < 1000) requestAnimationFrame(f); else dlog('perf fps=' + Math.round((n - 1) * 1000 / (ts - t0)) + ' worst=' + Math.round(worst) + 'ms'); }
+  requestAnimationFrame(f);
+}
 function focusItem(r, c, keepX){
   if (!rows.length) return;
+  var oR = R, oC = C;
   R = Math.max(0, Math.min(rows.length - 1, r)); C = Math.max(0, Math.min(rows[R].length - 1, c));
   var e = rows[R][C];
-  if (lastFocus && lastFocus !== e) lastFocus.className = lastFocus.className.replace(' foc', '');
-  if (e.className.indexOf(' foc') < 0) e.className += ' foc';
+  if (lastFocus && lastFocus !== e) lastFocus.className = lastFocus.className.replace(/ (foc|g[lrud])\b/g, '');
+  if (e.className.indexOf(' foc') < 0) e.className += ' foc' + (lastFocus && lastFocus !== e ? ' g' + (R > oR ? 'd' : R < oR ? 'u' : C < oC ? 'l' : 'r') : '');   // gX = where the focus went: the icon tilts and the light glides that way
+  if (lastFocus !== e) perfProbe();
   lastFocus = e;
   cls(document.body, 'tilefoc', / tile /.test(' ' + e.className + ' '));      // the other icons fade back while an icon has the focus
   if (!keepX) { var rc = e.getBoundingClientRect(); lastX = rc.left + rc.width / 2; }

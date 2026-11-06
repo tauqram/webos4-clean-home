@@ -450,3 +450,13 @@ NOT verified on the TV: the look on the real panel with real LG icons, Chromium 
 
 Tested in the build container only (playwright preview, placeholder icons): focus on a favourite, on the app grid, on a header button (no dimming). Only transform/opacity animate; the shadow switches without animation.
 NOT verified on the TV: smoothness of the opacity fade over 13+ tiles on Chromium 53, the look with real LG icons, edit mode. Mockups: project files `webos4-clean-home-apercu/selection/`.
+
+### 2026.11.06.5 - Focus v2: spring tilt, gliding light, render probe
+
+| Change | Where | Undo |
+|---|---|---|
+| Focused tile animates in with a spring (scale 1 -> 1.15 -> 1.125 -> 1.13) and a 6 deg tilt toward the move (`perspective rotateX/Y`, classes `gl/gr/gu/gd` set by `focusItem` from the previous row/column; not in edit mode) | `index.html`, `app.js` | revert the commit |
+| A soft radial band of light (`.sheen i`, inside `.sheen` with `overflow:hidden` and the tile's radius) glides across the focused icon from the side the focus came from (translate3d only) | `index.html`, `app.js` (`mkTile`) | revert the commit |
+| Render probe: on the first focus move logs `perf page WxH dpr= screen=`, then for 1 s after each of the first 12 moves `perf fps= worst=ms` (requestAnimationFrame) into `/tmp/launcher-page.log` | `app.js` (`perfProbe`) | revert the commit |
+
+Tested in the build container only: frame-by-frame capture at 60 fps (4K video in project files `webos4-clean-home-apercu/selection/`). NOT verified on the TV: real fps, the page's devicePixelRatio, whether the rounded clip of `.sheen` lags a frame while the tile scales (seen before on the icon itself).
