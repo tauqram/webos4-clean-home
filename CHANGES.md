@@ -388,6 +388,16 @@ Tested in the build container: nightoff.sh window parsing and the on/off decisio
 NOT verified on the TV: the local hour from `com.palm.systemservice/time/getSystemTime` (falls back to `date`), that LG honours a quickStartMode change made a minute before power-off,
 and whether our loops keep running in Quick Start+ standby (the log line "nightoff: still running at ..h while the TV is in ..." answers that; if they do, a TV left in standby at 22h could later be powered down for real: not built).
 
+## Release 2026.11.06.2 (2026-11-06, Sam's C9: Christmas theme, smoother 6 and 9; same branch, NOT on main)
+
+| What | Where | Undo |
+|---|---|---|
+| Season theme Noël (snowy pines, warm glow, string of lights, falling snow), active from 1 Dec to 6 Jan when the theme is "auto" | `THEMES.noel` + `SEASONS` in `tv/launcher/themes.js`, CSS in `backgrounds.css` (generator `tools/make-backgrounds.py`) | empty `SEASONS`, or pick another theme |
+| Clock font: the ink traps of 6 and 9 replaced by a plain crotch (Sam found the 9 odd at 19rem) | `tv/launcher/fonts/bricolage-grotesque-latin-800-normal.woff2`, made by `tools/fix-clock-digits.py` (OFL font, no Reserved Font Name, so a modified copy is allowed) | `git checkout` the previous woff2 |
+
+Snow: two pseudo-element layers, each two tiles tall, sliding down one tile (46 s and 24 s loops, transform only), inside a box
+masked to fade out before the app rows; paused while the screensaver runs. Verified in the headless preview only.
+
 ## Release 2026.11.06.1 (2026-11-06, Sam's C9: new backgrounds; same branch `claude/project-thread-kwaseh`, NOT on main)
 
 | What | Where | Undo |

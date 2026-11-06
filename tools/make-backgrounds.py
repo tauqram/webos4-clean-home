@@ -178,5 +178,66 @@ css += ['body.th-studio{--card:#1a1b1e}',
         'body.th-studio .nb-light{left:50%;top:-38rem;width:120rem;margin-left:-60rem;height:80rem;background:radial-gradient(closest-side,rgba(255,255,255,.13),rgba(255,255,255,.04) 55%,rgba(255,255,255,0))}',
         'body.th-studio .nb-vig{left:0;top:0;width:100%;height:100%;background:radial-gradient(ellipse 85% 75% at 50% 35%,rgba(0,0,0,0) 55%,rgba(0,0,0,.45))}']
 
+# ---- Noel (season, 1 Dec - 6 Jan): snowy pine forest at night, warm light behind the trees, a string of soft lights, falling snow
+def pines():
+    r = random.Random(21); out = []
+    def tree(x, base, h, col, rim):
+        w = h * r.uniform(.36, .44); tiers = 4; d = ''
+        for k in range(tiers):                                   # stacked tiers, each a little narrower, with a slight droop
+            top = base - h + h * k * .2; bot = base - h + h * (k * .2 + .42); hw = w * (.45 + .55 * (k + 1) / tiers) / 2
+            d += "M%.0f %.0f Q%.0f %.0f %.0f %.0f Q%.0f %.0f %.0f %.0f Q%.0f %.0f %.0f %.0fZ" % (
+                x, top, x - hw * .35, bot - (bot - top) * .45, x - hw, bot, x, bot - h * .03, x + hw, bot, x + hw * .35, bot - (bot - top) * .45, x, top)
+        trunk = "M%.0f %.0f h%.0f v%.0f h%.0fZ" % (x - w * .05, base - h * .2, w * .1, h * .2 + 2, -w * .1)
+        out.append("<path d='%s %s' fill='%s'/>" % (d, trunk, col))
+    def row(n, ybase, hmin, hmax, col, rim, amp, ph):
+        xs = sorted(r.uniform(-40, 1960) for _ in range(n))
+        for x in xs: tree(x, ybase + amp * math.sin(x / 380 + ph), r.uniform(hmin, hmax), col, rim)
+    row(40, 362, 60, 130, '#0d1a28', 0, 14, 1.0)                 # far row: lighter, bluish (haze)
+    row(26, 396, 100, 200, '#060c14', 0, 18, 2.7)                # near row: almost black
+    ground = 'M0 400 C300 388 520 410 820 400 C1120 390 1400 412 1700 402 C1820 398 1880 400 1920 404 V1080 H0Z'
+    out.append("<path d='%s' fill='#04080d'/><path d='%s' fill='none' stroke='#dfe8ff' stroke-opacity='.10' stroke-width='1.5'/>" % (ground, ground.split(' V')[0]))
+    return uri(SVG + ''.join(out) + '</svg>')
+
+
+def snow_tile(n, rmin, rmax, seed, opmax):
+    # 1920x1080 tile, repeated vertically; the layer is two tiles tall and slides down by exactly one tile (seamless)
+    r = random.Random(seed); c = []
+    for _ in range(n):
+        x = r.uniform(0, 1920); y = r.uniform(0, 1080); rad = r.uniform(rmin, rmax); op = r.uniform(.35, 1) * opmax
+        c.append("<circle cx='%.0f' cy='%.0f' r='%.1f' fill='#fff' fill-opacity='%.2f'/>" % (x, y, rad, op))
+    return uri(SVG + ''.join(c) + '</svg>')
+
+
+def garland():
+    # two gently sagging strings of warm lights across the top; a soft halo around each bulb
+    r = random.Random(33); dots = [[], []]; wire = []
+    for s, (y0, sag, n) in enumerate(((-4, 34, 26), (-12, 52, 22))):
+        pts = []
+        for i in range(n + 1):
+            t = i / float(n); x = t * 1920 + (s * 37); y = y0 + sag * 4 * t * (1 - t) + 10 * math.sin(t * 9 + s)
+            pts.append((x, y))
+        wire.append("<path d='M%s' fill='none' stroke='#2a2018' stroke-opacity='.6' stroke-width='1.2'/>" % ' L'.join('%.0f %.0f' % p for p in pts))
+        for i, (x, y) in enumerate(pts[1:-1]):
+            col = r.choice(('#ffd9a0', '#ffc070', '#ffe8c4', '#ff9f80'))
+            dots[i % 2].append("<circle cx='%.0f' cy='%.0f' r='8' fill='%s' fill-opacity='.10'/><circle cx='%.0f' cy='%.0f' r='2.8' fill='%s'/>" % (x, y + 5, col, x, y + 5, col))
+    return (uri(SVG + ''.join(wire) + ''.join(dots[0]) + '</svg>'), uri(SVG + ''.join(dots[1]) + '</svg>'))
+
+
+g1, g2 = garland()
+css += ['body.th-noel{--card:#101a22}',
+        'body.th-noel #themebg{background:linear-gradient(180deg,#03060c 0%,#071220 30%,#0d1d2e 37%,#060c14 45%,#04080d 100%)}',
+        'body.th-noel .nb-warm{left:0;top:0;width:100%;height:100%;background:radial-gradient(ellipse 45% 12% at 64% 35%,rgba(255,170,90,.22),rgba(255,140,70,.06) 55%,rgba(0,0,0,0) 80%)}',
+        # the snow sits in a box that fades out before the rows, so icons stay calm; the flakes move by transform only
+        'body.th-noel .nb-snowbox{left:0;top:0;width:100%;height:100%;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 30%,rgba(0,0,0,.35) 55%,transparent 80%)}',
+        'body.th-noel .nb-snowbox:before,body.th-noel .nb-snowbox:after{content:"";position:absolute;left:0;top:-100%;width:100%;height:200%;background-size:100% 50%;background-repeat:repeat-y;will-change:transform}',
+        'body.th-noel .nb-snowbox:before{background-image:' + snow_tile(140, .8, 1.8, 41, .7) + ';' + anim('nbsnow 46s linear infinite') + '}',
+        'body.th-noel .nb-snowbox:after{background-image:' + snow_tile(46, 1.8, 3.2, 42, .85) + ';' + anim('nbsnow2 24s linear infinite') + '}',
+        kf('nbsnow', 'from{transform:translate3d(0,0,0)}to{transform:translate3d(0,50%,0)}'),
+        kf('nbsnow2', 'from{transform:translate3d(0,0,0)}to{transform:translate3d(-2rem,50%,0)}'),
+        'body.saving #themebg .nb-snowbox:before,body.saving #themebg .nb-snowbox:after{-webkit-animation-play-state:paused;animation-play-state:paused}',
+        'body.th-noel .nb-g2{' + anim('nbtw 2.8s ease-in-out infinite alternate .7s') + '}']
+layer('noel', 's1', stars(110, 300, .45, 1.0, 51)); layer('noel', 'pines', pines())
+layer('noel', 'g1', g1); layer('noel', 'g2', g2)
+
 open(OUT, 'w', newline='\n').write('\n'.join(css) + '\n')
 print('wrote', OUT, os.path.getsize(OUT), 'bytes')
