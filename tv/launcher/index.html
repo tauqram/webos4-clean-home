@@ -465,6 +465,21 @@ body.th-aurore .hill{display:block}
 @keyframes tvtiltu{0%{transform:perspective(60rem) rotateX(0) scale(1)}45%{transform:perspective(60rem) rotateX(-6deg) scale(1.15)}75%{transform:perspective(60rem) rotateX(1.2deg) scale(1.125)}100%{transform:perspective(60rem) rotateX(0) scale(1.13)}}
 body.tilefoc:not(.editing) #view .tile:not(.foc) .ic{opacity:.62}
 #ghost .sheen{display:none}
+/* ===== screensaver clock (Sam's choice A, 2026-11-06): the Home clock's typeface, centred low, date and weather on one quiet
+   line below. It stays in place: app.js (saverShift) only nudges it by one CSS px every 3 minutes inside a 4 px square,
+   invisible but enough to keep the digits from marking the OLED. These rules come last and use two ids and .on so they win
+   over the older #sinfo styles above. ===== */
+#saver.on #sinfo{left:0;right:0;bottom:3.4rem;top:auto;text-align:center;text-shadow:none;transition:none}
+#saver.on:not(.nophoto) #sinfo{text-shadow:0 .2rem 1.6rem rgba(0,0,0,.55)}
+#saver.on #sinfo .t{font-family:"ClockBricolage","Inter",sans-serif;font-weight:800;font-size:13rem;line-height:1;letter-spacing:-.45rem;color:rgba(238,241,246,.86)}
+#saver.on #sinfo .t small{font-family:"Inter",sans-serif;font-weight:500;font-size:3rem;letter-spacing:0;margin-left:.8rem;color:rgba(232,236,242,.58)}
+body.cf-verre #saver.on #sinfo .t{font-family:"ClockInter","Inter",sans-serif;letter-spacing:-.55rem}
+body.cf-outfit #saver.on #sinfo .t{font-family:"ClockOutfit","Inter",sans-serif;font-weight:600;letter-spacing:-.3rem}
+#saver.on #sinfo .d,#saver.on #sinfo .w{display:inline-block;vertical-align:middle;margin-top:1.4rem;font-family:"Inter",sans-serif;font-weight:500;font-size:2rem;line-height:2.6rem;color:rgba(232,236,242,.58)}
+#saver.on #sinfo .w{display:none}
+#saver.on #sinfo .w.on{display:inline-block;margin-left:2.4rem}
+#saver.on #sinfo .w svg{display:inline-block;vertical-align:top;width:2.6rem;height:2.6rem;margin:0 .9rem 0 0;opacity:.85}
+#saver.on #sinfo .w .p{display:none}
 </style>
 <link rel="stylesheet" href="backgrounds.css">
 </head>

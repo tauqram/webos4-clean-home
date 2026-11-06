@@ -376,9 +376,14 @@ function showNext(){
   im.onerror = function(){ dlog('photo failed ' + src); slideT = setTimeout(showNext, 1000); };
   im.src = src;
 }
+// the clock stays in place (Sam, 2026-11-06); it only shifts by one CSS px every 3 minutes along a 4 x 4 px square (invisible),
+// so the same pixels of the OLED are not lit by the digits for hours
+var SHIFT = [[0,0],[1,0],[2,0],[3,0],[3,1],[3,2],[3,3],[2,3],[1,3],[0,3],[0,2],[0,1]], shiftIx = 0;
 function drift(){
-  var s = $('sinfo'); s.style.left = (3 + Math.random() * 40) + 'rem'; s.style.bottom = (3 + Math.random() * 40) + 'rem';
-  driftT = setTimeout(drift, 30000);
+  var p = SHIFT[shiftIx++ % SHIFT.length], s = $('sinfo');
+  s.style.left = s.style.bottom = '';
+  s.style.webkitTransform = s.style.transform = 'translate(' + (p[0] - 1.5) + 'px,' + (p[1] - 1.5) + 'px)';
+  driftT = setTimeout(drift, 180000);
 }
 // the TV's real backlight: lowered while the screensaver runs (tv/backlight.sh keeps the original and restores it in five independent ways)
 var blOn = false, blT = null;
@@ -398,7 +403,7 @@ function saverStart(){
   $('sdim').style.opacity = ((S.saver.dim === undefined ? 30 : S.saver.dim) / 100);
   blDim(); api('/api/history?v=saver', noop);      // Back forgets where you were, if the options say so
   $('scrimS').style.display = withPhotos ? 'block' : 'none';
-  if (withPhotos) { pIx = (bgIx + 1) % photos.length; showNext(); } else { drift(); if (window.Theme) Theme.saverFx($('fx'), S.saver.fx, LOWMEM); }
+  drift(); if (withPhotos) { pIx = (bgIx + 1) % photos.length; showNext(); } else { if (window.Theme) Theme.saverFx($('fx'), S.saver.fx, LOWMEM); }
   dlog('saver on photos=' + withPhotos);
   setTimeout(function(){ if (saverOn) saverPerf(); }, 8000);
 }

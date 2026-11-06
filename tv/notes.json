@@ -1,5 +1,14 @@
 [
   {
+    "v": "2026.11.06.14",
+    "date": "2026-11-06",
+    "title": "Nouvelle horloge de veille",
+    "notes": [
+      "Pendant la veille, l'heure est maintenant grande et centrée en bas, dans la même police que sur l'accueil, avec la date et la météo sur une ligne discrète en dessous.",
+      "Elle ne se promène plus sur l'écran : elle reste à sa place et se décale seulement d'un ou deux pixels de temps en temps, sans que ça se voie, pour protéger l'écran OLED."
+    ]
+  },
+  {
     "v": "2026.11.06.13",
     "date": "2026-11-06",
     "title": "Extinction rapide, sans déranger l'écran de veille",

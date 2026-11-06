@@ -523,3 +523,7 @@ Verified in headless Chromium at 3840x2160 (dpr 2): rendering, steps, fuchsia, n
 - `saver-take.sh`: no release right after a swap any more; `release` never runs while `/tmp/saver-on` exists. The watchdog fallback stays.
 - To verify: leave the TV idle on Home for 4 min, then `grep -E 'saverdeny|stuck' state/tv-debloat.log` and `getPowerState` (no `processing`).
 - Undo: `sh saverdeny.sh stop`; previous saver-take.sh / home-on.sh.
+
+### 2026.11.06.14 - Screensaver clock: centred, fixed
+
+Sam's choice A. Last block of `index.html` (`#saver.on #sinfo ...`, wins over the older #sinfo rules): the Home clock typeface (ClockBricolage 800, or the chosen clock font), 13rem, 86 % white, centred 3.4rem above the bottom, date + weather (no hi/lo/place) on one 2rem line, 58 % white. `app.js` `drift()` no longer jumps the block around every 30 s: it shifts it by 1 CSS px every 3 minutes along a 4 x 4 px square (pixel-shift against OLED marking), in photo mode too. Verified in headless Chromium at 4K with the three looks. Undo: revert the commit.
