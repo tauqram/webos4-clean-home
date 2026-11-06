@@ -489,3 +489,11 @@ Sam's TV review of the picture backgrounds (4K page, devicePixelRatio 2):
 - Moons (Ocean, Dunes): maria from smooth noise, 40 craters with a shadowed and a lit wall, fine regolith grain.
 - Shooting stars added to Ocean and Dunes.
 Verified in the build container only (headless Chromium at devicePixelRatio 2). NOT verified on the TV: smoothness of the swaying Lignes layer (one 4K-sized composited layer, about 36 MB of GPU memory while Lignes is shown). Undo: revert the commit.
+
+### 2026.11.06.10 - Screensaver looks Aurore, Eclipse, Soie
+
+Without gallery photos the screensaver now shows one of three looks instead of only fireworks (Settings, "Animation de veille": Alternance = a different one each time (default; the old value `theme` means the same), Aurore boréale, Éclipse, Soie, Feux d'artifice, Aucune).
+- Pictures `launcher/bg/sv-*.webp` (1x + @2x, 8.8 MB on flash and in the RAM copy) computed by `tools/render-saver.py`; light is computed, the TV only moves layers with transform / opacity. Aurora: 4K across and half resolution down (shown stretched x2 vertically; the rays are vertical so they stay sharp), filaments down to 3 px, a third fuchsia curtain that glows up about 20 s in every 71 s. Eclipse: a 2200 px rim picture rotating once in 3 min + a breathing bloom. Soie: each ribbon picture is one period wide and repeated (`repeat-x`, decoded once); the slide by one period loops without a seam.
+- Horizontal slides use `steps()` so each step is half a CSS px = one 4K pixel: fine lines are never resampled.
+- The elements exist only while the saver runs (`#svfx`, built by `themes.js`, removed 1.4 s after the saver stops), so their pictures (decoded at 4K: Aurore about 40 MB, Éclipse about 20 MB, Soie about 40 MB) are in memory only then. With LOWMEM (memguard) Aurore / Soie are replaced by Éclipse. The dim veil (`#sdim`) is off over these looks (it is meant for photos).
+Verified in headless Chromium at 3840x2160 (dpr 2): rendering, steps, fuchsia, no page error. NOT verified on the TV: smoothness and memory (check with `grep perf /tmp/launcher-page.log`). Undo: revert the commit, or choose "Feux d'artifice" in Settings.

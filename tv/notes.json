@@ -1,5 +1,16 @@
 [
   {
+    "v": "2026.11.06.10",
+    "date": "2026-11-06",
+    "title": "Trois nouvelles animations de veille",
+    "notes": [
+      "La veille a trois nouveaux décors, presque entièrement noirs pour ménager l'écran OLED : Aurore boréale (avec, de temps en temps, une touche de fuchsia), Éclipse (un fin liseré de lumière qui fait le tour d'une lune noire) et Soie (des rubans de fils de lumière qui ondulent).",
+      "Ils sont préparés en 4K : les traits fins restent nets et les mouvements sont lents et fluides.",
+      "Par défaut, la veille en change à chaque fois. On peut en choisir un seul dans Réglages, rubrique de la veille, « Animation de veille ». Les feux d'artifice restent disponibles.",
+      "Ces animations s'affichent quand la veille ne montre pas de photos de la galerie."
+    ]
+  },
+  {
     "v": "2026.11.06.9",
     "date": "2026-11-06",
     "title": "Fonds d'écran plus nets et plus vivants",
