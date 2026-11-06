@@ -423,7 +423,7 @@ body.th-aurore .hill{display:block}
 .tile.foc .ic:after{opacity:1}
 .sheen{position:absolute;left:0;top:0;right:0;bottom:0;border-radius:inherit;overflow:hidden;z-index:3;pointer-events:none;visibility:hidden}
 .sheen i{position:absolute;left:-30%;top:-30%;width:160%;height:160%;opacity:0;transition:opacity .5s .2s;
-  background:radial-gradient(circle at 38% 30%,rgba(255,255,255,.24) 0%,rgba(255,255,255,.11) 22%,rgba(255,255,255,.03) 40%,rgba(255,255,255,0) 52%)}
+  background:url("bg/focus-light.webp") no-repeat 0 0;background-size:100% 100%}      /* a dithered Gaussian spot drawn on the PC (tools/make-focus-light.py): a CSS gradient showed rings on the OLED */
 .tile.foc .sheen{visibility:visible}
 .tile.foc .sheen i{opacity:1;animation:tvglow 9s ease-in-out .6s infinite}
 /* Apple: the focused icon "gently sways while the surface illuminates"; with arrow keys there is no thumb to follow, so it sways on its own, slowly */

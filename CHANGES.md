@@ -473,3 +473,7 @@ The sway and the light run continuously on one tile while Home is shown (composi
 ### 2026.11.06.7 - Focus light a little stronger
 
 `.sheen i` peak 0.17 -> 0.24 white, drift +-9 % -> +-14 % (`tvglow`) in `index.html`: Sam could not see the light in the 2026.11.06.6 video (that video was also spoiled by the preview's screensaver starting during the slow frame capture; the recorder now blocks long timers). Undo: revert the commit.
+
+### 2026.11.06.8 - Focus light without rings
+
+Sam saw the rings of the CSS radial-gradient (8-bit steps on the OLED, at 4K: devicePixelRatio 2 measured). `.sheen i` now uses `launcher/bg/focus-light.webp` (768 px lossless WebP, white with a Gaussian alpha falloff and triangular dither, drawn by `tools/make-focus-light.py`; `ram_sync` already copies `bg/*.webp`). Undo: revert the commit.

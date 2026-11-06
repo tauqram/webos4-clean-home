@@ -1,5 +1,13 @@
 [
   {
+    "v": "2026.11.06.8",
+    "date": "2026-11-06",
+    "title": "Sélection des icônes : lumière parfaitement fondue",
+    "notes": [
+      "La lumière qui glisse sur l'icône choisie se fond maintenant sans aucun cercle ni trace de halo visible, même sur les icônes noires."
+    ]
+  },
+  {
     "v": "2026.11.06.7",
     "date": "2026-11-06",
     "title": "Sélection des icônes : lumière plus visible",
