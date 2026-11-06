@@ -1,5 +1,15 @@
 [
   {
+    "v": "2026.11.06.21",
+    "date": "2026-11-06",
+    "title": "Noms des applis plus courts et toujours visibles",
+    "notes": [
+      "Le nom sous l'icône choisie est raccourci : « Spotify - Musique et podcasts » devient « Spotify », « M6 TV Replay Streaming » devient « M6+ ».",
+      "Les noms écrits tout en majuscules s'affichent normalement : « CANAL+ » devient « Canal+ ».",
+      "Le nom ne sort plus de l'écran : pour une icône tout au bord, il se décale vers l'intérieur, et un nom vraiment trop long se termine par « … »."
+    ]
+  },
+  {
     "v": "2026.11.06.20",
     "date": "2026-11-06",
     "title": "Veille : plus de double démarrage",

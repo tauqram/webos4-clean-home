@@ -13,6 +13,7 @@ if (MOCK && /mode=inputs/.test(location.search)) MODE = 'inputs';
 var INPMODE = MODE === 'inputs';          // the Inputs overlay: only the Inputs panel (replaces LG's input picker)
 var SETMODE = MODE === 'settings' || INPMODE;   // both overlays share the "no Home behaviour" switches
 var CFG = {
+  nameByTitle: {'M6 TV Replay Streaming': 'M6+'},      // short names under the icons (Sam): exact store title -> name shown
   iconInset: {'amazon.alexa': 1},
   // apps that ship a placeholder icon, matched by title (their id can be the same as the original app's): our own drawing + tile colour
   iconByTitle: {'YouTube AdFree': {c: '#ff0033', src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Crect width='260' height='260' fill='%23ff0033'/%3E%3Crect x='50' y='72' width='160' height='116' rx='34' fill='%23fff'/%3E%3Cpath d='M112 104 L158 130 L112 156 Z' fill='%23ff0033'/%3E%3C/svg%3E"}},      // apps whose icon is drawn right to its edge: shown a little inside the tile so the rounding does not cut it
@@ -205,6 +206,21 @@ function glowFor(a){
   if (/^#[0-9a-f]{6}$/i.test(c) && c.toLowerCase() !== '#ffffff' && c.toLowerCase() !== '#000000') return c;
   var h = 0, s = a.id || ''; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return 'hsl(' + h + ',70%,55%)';
 }
+// the name under an icon: our own short name if we have one, else the store title cut at its tagline (« Spotify - Musique et podcasts » -> « Spotify »),
+// and shouting words written in capitals (CANAL+, NETFLIX) in normal case; short acronyms (TV, HDMI, TF1) stay as they are
+function shortName(t){
+  t = String(t || ''); if (CFG.nameByTitle[t]) return CFG.nameByTitle[t];
+  var s = t.split(/\s+[-\u2013\u2014:|]\s+|\s*[(\[]/)[0].replace(/\s+$/, '') || t;
+  return s.replace(/[A-Z\u00C0-\u00DE]{5,}/g, function(w){ return w.charAt(0) + w.slice(1).toLowerCase(); });
+}
+// keeps the focused icon's name inside the screen: a name wider than its icon is centred under it, but slides in when it would cross the edge
+function fitName(t){
+  var nm = t && t.querySelector && t.querySelector('.nm'); if (!nm) return;
+  nm.style.left = '0px';
+  var r = nm.getBoundingClientRect(), fs = parseFloat(getComputedStyle(document.documentElement).fontSize), m = 4 * fs, d = 0;
+  if (r.left < m) d = m - r.left; else if (r.right > innerWidth - m) d = innerWidth - m - r.right;
+  if (d) nm.style.left = Math.round(d) + 'px';
+}
 function mkTile(a, big){
   var ov = CFG.iconByTitle[a.title]; if (ov) { a = clone(a); a.iconColor = ov.c; a.largeIcon = ov.src; }
   var t = el('div', 'tile ' + (big ? 'big' : 'sm')), ic = el('div', 'ic'), img = el('img'); img.alt = ''; img.src = iconUrl(a.largeIcon || a.icon);
@@ -216,7 +232,7 @@ function mkTile(a, big){
     var tint = el('div', 'tint'); tint.style.background = glowFor(a); ic.appendChild(tint);      // a flat tint, used by themes that want it (Azion)
   }
   ic.appendChild(img); ic.appendChild(el('div', 'ring')); t.appendChild(ic);
-  var nm = el('div', 'nm'); nm.textContent = a.title || a.id; t.appendChild(nm); t._app = a; return t;
+  var nm = el('div', 'nm'); nm.textContent = shortName(a.title || a.id); t.appendChild(nm); t._app = a; return t;
 }
 function buildApps(list){
   var dock = $('dock'), grid = $('grid'); dock.innerHTML = ''; grid.innerHTML = '';
@@ -282,6 +298,7 @@ function focusItem(r, c, keepX){
   if (lastFocus && lastFocus !== e) lastFocus.className = lastFocus.className.replace(/ (foc|g[lrud])\b/g, '');
   if (e.className.indexOf(' foc') < 0) e.className += ' foc' + (lastFocus && lastFocus !== e ? ' g' + (R > oR ? 'd' : R < oR ? 'u' : C < oC ? 'l' : 'r') : '');   // gX = where the focus went: the icon tilts and the light glides that way
   if (lastFocus !== e) perfProbe();
+  fitName(e);
   lastFocus = e;
   cls(document.body, 'tilefoc', / tile /.test(' ' + e.className + ' '));      // the other icons fade back while an icon has the focus
   if (!keepX) { var rc = e.getBoundingClientRect(); lastX = rc.left + rc.width / 2; }
