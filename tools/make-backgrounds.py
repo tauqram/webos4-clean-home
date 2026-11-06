@@ -182,9 +182,9 @@ css += ['body.th-studio{--card:#1a1b1e}',
 # The pictures come from tools/make-season-backgrounds.py (computed on the PC); here they only slide down (transform).
 # Each snow layer is two pictures tall and moves by exactly one picture, so the loop has no seam.
 css += ['body.th-noel{--card:#0f1a2c}',
-        'body.th-noel #themebg{background:#03060d url(bg/noel-base.webp) 0 0/100% 100% no-repeat}',
+        'body.th-noel #themebg{background:#03060d url(bg/noel-base.webp) 0 0/100% 100% no-repeat;background-image:-webkit-image-set(url(bg/noel-base.webp) 1x,url(bg/noel-base@2x.webp) 2x)}',
         '#nbg .nb-snow{left:0;top:-100%;width:100%;height:200%;background-repeat:repeat-y;background-size:100% 50%;will-change:transform}',
-        'body.th-noel .nb-far{background-image:url(bg/snow-far.webp);' + anim('nbfall 70s linear infinite') + '}',
+        'body.th-noel .nb-far{background-image:url(bg/snow-far.webp);background-image:-webkit-image-set(url(bg/snow-far.webp) 1x,url(bg/snow-far@2x.webp) 2x);' + anim('nbfall 70s linear infinite') + '}',
         'body.th-noel .nb-mid{background-image:url(bg/snow-mid.webp);' + anim('nbfall2 38s linear infinite') + '}',
         'body.th-noel .nb-near{background-image:url(bg/snow-near.webp);' + anim('nbfall3 21s linear infinite') + '}',
         kf('nbfall', 'from{transform:translate3d(0,0,0)}to{transform:translate3d(0,50%,0)}'),

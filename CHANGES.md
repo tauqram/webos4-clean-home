@@ -393,7 +393,7 @@ and whether our loops keep running in Quick Start+ standby (the log line "nighto
 | What | Where | Undo |
 |---|---|---|
 | Season theme Noël, active 1 Dec - 6 Jan when the theme is "auto" | `THEMES.noel` + `SEASONS` in `tv/launcher/themes.js`; CSS in `backgrounds.css` (`tools/make-backgrounds.py`) | empty `SEASONS`, or pick another theme |
-| Pictures computed on the PC (blue night 1920x1080, three transparent snow layers 960x540 shown 2x) | `tv/launcher/bg/*.webp` (about 50 KB in all), made by `tools/make-season-backgrounds.py` (numpy + Pillow, fixed seeds) | delete the folder with the theme |
+| Pictures computed on the PC (blue night 1920x1080, far snow 1920x1080, soft mid/near snow 960x540 shown 2x; 4K `@2x` copies of the base and far snow picked through `-webkit-image-set` only if the page is drawn at devicePixelRatio 2) | `tv/launcher/bg/*.webp` (about 220 KB in all), made by `tools/make-season-backgrounds.py` (numpy + Pillow, fixed seeds) | delete the folder with the theme |
 | RAM copy of the launcher gets `bg/*.webp` | `ram_sync` in `tv/common.sh` | revert the lines |
 
 Made with the method of the design-resources doc (abstract only, rendered on the PC, grain baked in, every full-screen shot critiqued

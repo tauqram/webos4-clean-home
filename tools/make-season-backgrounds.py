@@ -8,7 +8,7 @@ Why pictures and not CSS: soft light, real depth-of-field flakes and grain look 
 almost nothing. Fixed seeds: every run gives the same files.
 
 Noël = a calm blue night (noel-base.webp, full screen) and three layers of snow (snow-far/mid/near.webp, transparent,
-half resolution, shown twice as big: the flakes are soft anyway, and it keeps the decoded size at 2 MB per layer).
+the far layer at full definition, the soft mid and near layers at half resolution shown twice as big: 2 MB each).\n4K copies (@2x) are picked by the browser only if it draws the page at 4K; webOS 4 normally draws apps at 1920x1080.
 Each snow picture wraps vertically, so a layer two pictures tall that slides down by one picture loops without a seam.
 """
 import os, random
@@ -64,8 +64,10 @@ def snow(path, n, rmin, rmax, amin, amax, blur, seed, xpick=None, W=960, H=540):
 
 os.makedirs(OUT, exist_ok=True)
 base(os.path.join(OUT, 'noel-base.webp'))
-# far: tiny, faint, everywhere (the only flakes behind the app rows that you notice are these)
-snow(os.path.join(OUT, 'snow-far.webp'), 420, .5, 1.1, .25, .65, .3, 1)
+base(os.path.join(OUT, 'noel-base@2x.webp'), 3840, 2160)          # used only if the TV draws the page at 4K (devicePixelRatio 2)
+# far: tiny, faint, everywhere, at full definition so the small flakes stay sharp (and a 4K copy)
+snow(os.path.join(OUT, 'snow-far.webp'), 420, .7, 1.6, .25, .65, .4, 1, W=1920, H=1080)
+snow(os.path.join(OUT, 'snow-far@2x.webp'), 420, 1.4, 3.2, .25, .65, .8, 1, W=3840, H=2160)
 # mid: small soft flakes, everywhere but sparse
 snow(os.path.join(OUT, 'snow-mid.webp'), 70, 1.6, 3.0, .25, .55, 1.0, 2)
 # near: a few big out-of-focus flakes, mostly along the left and right edges
