@@ -1,5 +1,15 @@
 [
   {
+    "v": "2026.11.06.4",
+    "date": "2026-11-06",
+    "title": "Sélection des icônes plus élégante",
+    "notes": [
+      "L'icône choisie n'a plus de gros contour : elle grossit légèrement, flotte au-dessus d'une ombre douce et reçoit un léger reflet de lumière, comme sur l'Apple TV.",
+      "Les autres icônes pâlissent un peu pendant ce temps, pour qu'on voie tout de suite laquelle est choisie, même quand elle est sombre comme Netflix.",
+      "Le contour reste seulement quand on déplace une icône (appui long), pour savoir laquelle bouge."
+    ]
+  },
+  {
     "v": "2026.11.06.3",
     "date": "2026-11-06",
     "title": "Thème de Noël et fonds plus réalistes",

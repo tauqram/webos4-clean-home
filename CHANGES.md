@@ -440,3 +440,13 @@ switch back to Aurore or Noir.
 
 Tested in the build container only: preview of Home (Aurore, Bleu nuit, Azion; the three fonts), focus on a header button, focus in the grid, long-press edit mode, Settings row, screensaver unchanged; `node --check app.js`, `node tools/release-check.js`.
 NOT verified on the TV: the look on the real panel with real LG icons, Chromium 53 rendering of `-webkit-background-clip:text` (glass digits), scroll position of the lower app rows, the edit hint over the last row. Mockups and CSS sketches: project files `webos4-clean-home-apercu/pistes-2026-11-05/`.
+
+### 2026.11.06.4 - Icon focus without the ring, Apple TV style (Sam's option C)
+
+| Change | Where | Undo |
+|---|---|---|
+| Focused tile: ring hidden (kept for `.tile.edit`), icon `scale(1.13)` over a deep soft shadow, light reflection layer `.ic:after` (radial highlight + inset light edge, opacity fade) | `index.html` (last style block) | revert the commit |
+| Other icons at opacity .62 while a tile has the focus (`body.tilefoc`, set in `focusItem`; not while focus is on a header button, not in edit mode) | `index.html`, `app.js` | revert the commit |
+
+Tested in the build container only (playwright preview, placeholder icons): focus on a favourite, on the app grid, on a header button (no dimming). Only transform/opacity animate; the shadow switches without animation.
+NOT verified on the TV: smoothness of the opacity fade over 13+ tiles on Chromium 53, the look with real LG icons, edit mode. Mockups: project files `webos4-clean-home-apercu/selection/`.

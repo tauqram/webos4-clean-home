@@ -262,6 +262,7 @@ function focusItem(r, c, keepX){
   if (lastFocus && lastFocus !== e) lastFocus.className = lastFocus.className.replace(' foc', '');
   if (e.className.indexOf(' foc') < 0) e.className += ' foc';
   lastFocus = e;
+  cls(document.body, 'tilefoc', / tile /.test(' ' + e.className + ' '));      // the other icons fade back while an icon has the focus
   if (!keepX) { var rc = e.getBoundingClientRect(); lastX = rc.left + rc.width / 2; }
   setGlow(glowFor(e._app));
   setHero(e);

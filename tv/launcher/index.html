@@ -411,6 +411,17 @@ body.th-azion .rowlabel{color:#c4c3bd}
 /* a dark hill behind the clock, with a thin rim of aurora light (Aurore) */
 .hill{position:absolute;display:none;left:0;top:0;width:100%;height:100%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1920 1080' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='f' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%230b1220'/%3E%3Cstop offset='.12' stop-color='%23060910'/%3E%3Cstop offset='.4' stop-color='%2305070c'/%3E%3C/linearGradient%3E%3ClinearGradient id='r' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%237cf5d0' stop-opacity='0'/%3E%3Cstop offset='.35' stop-color='%237cf5d0' stop-opacity='.55'/%3E%3Cstop offset='.6' stop-color='%239b8cff' stop-opacity='.5'/%3E%3Cstop offset='1' stop-color='%239b8cff' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 372 C200 360 340 368 480 352 C580 340 640 318 720 304 C780 296 820 322 880 328 C950 334 990 286 1060 268 C1120 254 1160 296 1220 318 C1300 344 1420 340 1560 356 C1700 370 1820 362 1920 366 V1080 H0Z' fill='url(%23f)'/%3E%3Cpath d='M0 372 C200 360 340 368 480 352 C580 340 640 318 720 304 C780 296 820 322 880 328 C950 334 990 286 1060 268 C1120 254 1160 296 1220 318 C1300 344 1420 340 1560 356 C1700 370 1820 362 1920 366' fill='none' stroke='url(%23r)' stroke-width='2.5'/%3E%3C/svg%3E") no-repeat 0 0;background-size:100% 100%}
 body.th-aurore .hill{display:block}
+/* focused icon, Apple TV style (Sam 2026-11-06, option C): no ring; the icon grows over a soft shadow, catches a light reflection,
+   and the other icons fade back. The ring stays for the edit mode (.tile.edit). Only transform/opacity animate (Chromium 53, weak GPU). */
+.tile.foc:not(.edit) .ring{opacity:0}
+.tile .ic{transition:transform .22s cubic-bezier(.2,0,0,1),opacity .22s}
+.tile.foc .ic{transform:scale(1.13);box-shadow:0 2.4rem 4rem -.8rem rgba(0,0,0,.8),0 .6rem 1.2rem rgba(0,0,0,.35)}
+.tile.foc .nm{transform:translateY(.9rem)}
+.tile .ic:after{content:"";position:absolute;left:0;top:0;right:0;bottom:0;border-radius:inherit;z-index:2;pointer-events:none;opacity:0;transition:opacity .22s;
+  background:radial-gradient(ellipse 90% 70% at 22% 0%,rgba(255,255,255,.24) 0%,rgba(255,255,255,.07) 45%,rgba(255,255,255,0) 70%);
+  box-shadow:inset 0 .1rem 0 rgba(255,255,255,.32),inset 0 0 0 .08rem rgba(255,255,255,.12)}
+.tile.foc .ic:after{opacity:1}
+body.tilefoc:not(.editing) #view .tile:not(.foc) .ic{opacity:.62}
 </style>
 <link rel="stylesheet" href="backgrounds.css">
 </head>
