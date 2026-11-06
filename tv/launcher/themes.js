@@ -7,10 +7,18 @@
 var THEMES = {
   noir:     {name: 'Noir OLED', accent: '#ffffff', fx: 'fireworks'},
   aurore:   {name: 'Aurore',    accent: '#7cf5d0', fx: 'fireworks'},
-  bleunuit: {name: 'Bleu nuit', accent: '#8fb4ff', fx: 'fireworks'},
+  bleunuit: {name: 'Bleu nuit', accent: '#8fb4ff', fx: 'fireworks', layers: ['milky', 'hz', 'full s1', 'full s2 tw1', 'full s3 tw2', 'sh sh1', 'sh sh2', 'full hill', 'grain']},
+  horizon:  {name: 'Horizon',   accent: '#a9c4ff', fx: 'fireworks', layers: ['sky', 'full s1', 'full s2 tw1', 'full s3 tw2', 'sh sh1', 'sh sh2', 'lit', 'planet', 'sun', 'grain']},
+  ocean:    {name: 'Océan',     accent: '#bcd2f5', fx: 'fireworks', layers: ['halo', 'full s1 tw1', 'moon', 'full ref shim', 'grain']},
+  dunes:    {name: 'Dunes',     accent: '#ffb38a', fx: 'fireworks', layers: ['full s1 tw1', 'glow', 'moon', 'full dunes', 'grain']},
+  degrade:  {name: 'Dégradé',   accent: '#b9a8ff', fx: 'fireworks', layers: ['m m1', 'm m2', 'm m3', 'fade', 'grain']},
+  lignes:   {name: 'Lignes',    accent: '#ffc58f', fx: 'fireworks', layers: ['spot', 'full ln', 'fade', 'grain']},
+  studio:   {name: 'Studio',    accent: '#f2f2f0', fx: 'fireworks', soft: true, layers: ['light', 'vig', 'grain']},
   sable:    {name: 'Sable',     accent: '#ffc98a', fx: 'fireworks'},
   azion:    {name: 'Azion',     accent: '#ecebe8', fx: 'fireworks', soft: true}   // soft: bursts keep to the theme's muted colours
 };
+// layers: the divs a theme draws in #themebg (each word becomes class nb-<word>), styled by backgrounds.css,
+// which tools/make-backgrounds.py generates. Themes without layers use the .tb1-.tb3 divs styled in index.html.
 // {theme: 'noel', from: [12, 1], to: [1, 6]}  = from 1 December to 6 January (month, day), both included
 var SEASONS = [];
 var BASE = 'aurore';      // what "auto" shows outside every season
@@ -31,8 +39,17 @@ function apply(id){
   var t = resolve(id), b = document.body;
   if (t === current) return t;
   b.className = (' ' + b.className + ' ').replace(/ th-\w+ /g, ' ').replace(/^ +| +$/g, '') + ' th-' + t;
+  layers(THEMES[t].layers);
   document.documentElement.style.setProperty('--accent', THEMES[t].accent);
   current = t; return t;
+}
+function layers(list){
+  var bg = document.getElementById('themebg'), n = document.getElementById('nbg');
+  if (n) n.parentNode.removeChild(n);
+  if (!bg || !list) return;
+  n = document.createElement('div'); n.id = 'nbg';
+  for (var i = 0; i < list.length; i++) { var d = document.createElement('div'); d.className = 'nb-' + list[i].split(' ').join(' nb-'); n.appendChild(d); }
+  bg.appendChild(n);
 }
 function options(){
   var o = [['auto', 'Automatique (saisons)']];
@@ -110,6 +127,12 @@ var PALETTES = {
   aurore: ['#7cf5d0', '#5ad1ff', '#c38bff', '#ffffff'],
   bleunuit: ['#8fb4ff', '#ffffff', '#ffd27a', '#ff8fd0'],
   sable: ['#ffc98a', '#ff9a5a', '#fff1d6', '#ff6b6b'],
+  horizon: ['#a9c4ff', '#ffffff', '#ffe2b8', '#7ab8ff'],
+  ocean: ['#bcd2f5', '#ffffff', '#8fd8e8', '#ffd27a'],
+  dunes: ['#ffb38a', '#ffd9a0', '#fff1d6', '#ff7b6b'],
+  degrade: ['#b9a8ff', '#5ad1e0', '#ff8fd0', '#ffffff'],
+  lignes: ['#ffc58f', '#ffffff', '#ff9a6a', '#ffe7c2'],
+  studio: ['#f2f2f0', '#d8d6d0', '#b9b7b0', '#ffffff'],
   azion: ['#d97757', '#ecebe8', '#88d1a2', '#e5be77', '#e796a8', '#bbaceb', '#7fafe2']   // Azion's terracotta, off-white and softened colours of meaning
 };
 var running = null;
