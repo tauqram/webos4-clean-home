@@ -44,6 +44,8 @@ grep -q '^admanager=off' "$STATE/svc.conf" 2>/dev/null || sh "$D/debloat.sh" swe
 ( setsid sh "$D/pointer.sh" watch </dev/null >/dev/null 2>&1 & )
 ( setsid sh "$D/backchain.sh" start </dev/null >/dev/null 2>&1 & )
 ( setsid sh "$D/pointerhide.sh" start </dev/null >/dev/null 2>&1 & )
+# LG's own screensaver still starts (LG's power service needs to see it) but draws nothing (saverhide.sh)
+sh "$D/saverhide.sh" apply >/dev/null 2>&1
 # watchdog: API self-heal every 20 s; every 5 min re-apply whatever LG restarted (debloat.sh sweep); every hour refresh the ad-block lists
 ( bad=0; tick=0
   while is_mounted $HOME_EXE; do
@@ -53,7 +55,7 @@ grep -q '^admanager=off' "$STATE/svc.conf" 2>/dev/null || sh "$D/debloat.sh" swe
     if api_ok; then bad=0; else api_start; sleep 1; if api_ok; then bad=0; else bad=$((bad+1)); fi; fi
     [ $bad -ge 3 ] && { log "home-on: watchdog -> LG Home"; sh "$D/home-off.sh" temp; break; }
     if [ $((tick % 15)) = 0 ] && mkdir /tmp/tvd-sweep.lock 2>/dev/null; then
-      ( sh "$D/debloat.sh" sweep >/dev/null 2>&1; ( setsid sh "$D/settings-hook.sh" start </dev/null >/dev/null 2>&1 & ); ( setsid sh "$D/lastapp.sh" start </dev/null >/dev/null 2>&1 & ); ( setsid sh "$D/pointer.sh" watch </dev/null >/dev/null 2>&1 & ); ( setsid sh "$D/backchain.sh" start </dev/null >/dev/null 2>&1 & ); ( setsid sh "$D/pointerhide.sh" start </dev/null >/dev/null 2>&1 & ); sleep 10; sh "$D/health.sh" log; rmdir /tmp/tvd-sweep.lock ) </dev/null >/dev/null 2>&1 &
+      ( sh "$D/debloat.sh" sweep >/dev/null 2>&1; ( setsid sh "$D/settings-hook.sh" start </dev/null >/dev/null 2>&1 & ); ( setsid sh "$D/lastapp.sh" start </dev/null >/dev/null 2>&1 & ); ( setsid sh "$D/pointer.sh" watch </dev/null >/dev/null 2>&1 & ); ( setsid sh "$D/backchain.sh" start </dev/null >/dev/null 2>&1 & ); ( setsid sh "$D/pointerhide.sh" start </dev/null >/dev/null 2>&1 & ); sh "$D/saverhide.sh" apply >/dev/null 2>&1; sleep 10; sh "$D/health.sh" log; rmdir /tmp/tvd-sweep.lock ) </dev/null >/dev/null 2>&1 &
     fi
     # full shutdown at night (Settings -> Power & timers; nightoff.sh): Quick Start+ follows the clock, checked once a minute
     [ $((tick % 3)) = 1 ] && ( sh "$D/nightoff.sh" tick >/dev/null 2>&1 ) </dev/null >/dev/null 2>&1 &

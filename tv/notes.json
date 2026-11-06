@@ -1,5 +1,15 @@
 [
   {
+    "v": "2026.11.06.17",
+    "date": "2026-11-06",
+    "title": "L'écran de veille LG devient invisible",
+    "notes": [
+      "L'écran de veille d'origine de LG ne s'affiche plus du tout : la télé le lance toujours en coulisses (c'est nécessaire pour que l'extinction reste rapide), mais il est désormais transparent et ne dessine rien.",
+      "Vous ne voyez donc que notre accueil puis notre écran de veille.",
+      "C'est nouveau : si vous apercevez encore l'ancien écran de veille, dites-le."
+    ]
+  },
+  {
     "v": "2026.11.06.16",
     "date": "2026-11-06",
     "title": "Moins de veille LG à l'écran",
