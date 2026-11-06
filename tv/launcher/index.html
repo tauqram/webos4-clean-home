@@ -423,7 +423,7 @@ body.th-aurore .hill{display:block}
 .tile.foc .ic:after{opacity:1}
 .sheen{position:absolute;left:0;top:0;right:0;bottom:0;border-radius:inherit;overflow:hidden;z-index:3;pointer-events:none;visibility:hidden}
 .sheen i{position:absolute;left:-30%;top:-30%;width:160%;height:160%;opacity:0;transition:opacity .5s .2s;
-  background:radial-gradient(circle at 38% 30%,rgba(255,255,255,.17) 0%,rgba(255,255,255,.08) 22%,rgba(255,255,255,.02) 40%,rgba(255,255,255,0) 52%)}
+  background:radial-gradient(circle at 38% 30%,rgba(255,255,255,.24) 0%,rgba(255,255,255,.11) 22%,rgba(255,255,255,.03) 40%,rgba(255,255,255,0) 52%)}
 .tile.foc .sheen{visibility:visible}
 .tile.foc .sheen i{opacity:1;animation:tvglow 9s ease-in-out .6s infinite}
 /* Apple: the focused icon "gently sways while the surface illuminates"; with arrow keys there is no thumb to follow, so it sways on its own, slowly */
@@ -433,7 +433,7 @@ body.th-aurore .hill{display:block}
 .tile.foc.gd:not(.edit) .ic{animation:tvtiltd .6s cubic-bezier(.25,.1,.25,1),tvsway 9s ease-in-out .6s infinite}
 .tile.foc.gu:not(.edit) .ic{animation:tvtiltu .6s cubic-bezier(.25,.1,.25,1),tvsway 9s ease-in-out .6s infinite}
 @keyframes tvsway{0%{transform:perspective(60rem) rotateY(0) rotateX(0) scale(1.13)}25%{transform:perspective(60rem) rotateY(2.2deg) rotateX(-1.2deg) scale(1.13)}75%{transform:perspective(60rem) rotateY(-2.2deg) rotateX(1.2deg) scale(1.13)}100%{transform:perspective(60rem) rotateY(0) rotateX(0) scale(1.13)}}
-@keyframes tvglow{0%{transform:translate3d(0,0,0)}25%{transform:translate3d(-9%,-5%,0)}75%{transform:translate3d(9%,5%,0)}100%{transform:translate3d(0,0,0)}}
+@keyframes tvglow{0%{transform:translate3d(0,0,0)}25%{transform:translate3d(-14%,-8%,0)}75%{transform:translate3d(14%,8%,0)}100%{transform:translate3d(0,0,0)}}
 @keyframes tvtiltr{0%{transform:perspective(60rem) rotateY(0) scale(1)}45%{transform:perspective(60rem) rotateY(-6deg) scale(1.15)}75%{transform:perspective(60rem) rotateY(1.2deg) scale(1.125)}100%{transform:perspective(60rem) rotateY(0) scale(1.13)}}
 @keyframes tvtiltl{0%{transform:perspective(60rem) rotateY(0) scale(1)}45%{transform:perspective(60rem) rotateY(6deg) scale(1.15)}75%{transform:perspective(60rem) rotateY(-1.2deg) scale(1.125)}100%{transform:perspective(60rem) rotateY(0) scale(1.13)}}
 @keyframes tvtiltd{0%{transform:perspective(60rem) rotateX(0) scale(1)}45%{transform:perspective(60rem) rotateX(6deg) scale(1.15)}75%{transform:perspective(60rem) rotateX(-1.2deg) scale(1.125)}100%{transform:perspective(60rem) rotateX(0) scale(1.13)}}

@@ -469,3 +469,7 @@ Tested in the build container only: frame-by-frame capture at 60 fps (4K video i
 | After the arrival tilt, the focused icon sways gently (`tvsway`: rotateY +-2.2 deg, rotateX +-1.2 deg, 9 s loop, scale 1.13), as Apple's HIG says a focused tvOS icon "gently sways while the surface illuminates". The resting `.ic:after` now only draws the light edge | `index.html` | revert the commit |
 
 The sway and the light run continuously on one tile while Home is shown (compositor-only transforms). Tested in the build container (60 fps frame-by-frame 4K video in project files `webos4-clean-home-apercu/selection/reflet-v3-*`). NOT verified on the TV: fps, and whether the endless animation costs anything noticeable.
+
+### 2026.11.06.7 - Focus light a little stronger
+
+`.sheen i` peak 0.17 -> 0.24 white, drift +-9 % -> +-14 % (`tvglow`) in `index.html`: Sam could not see the light in the 2026.11.06.6 video (that video was also spoiled by the preview's screensaver starting during the slow frame capture; the recorder now blocks long timers). Undo: revert the commit.

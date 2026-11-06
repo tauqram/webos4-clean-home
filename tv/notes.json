@@ -1,5 +1,13 @@
 [
   {
+    "v": "2026.11.06.7",
+    "date": "2026-11-06",
+    "title": "Sélection des icônes : lumière plus visible",
+    "notes": [
+      "La lumière qui glisse sur l'icône choisie est un peu plus présente et se déplace un peu plus, pour qu'on la voie depuis le canapé, sans devenir tape-à-l'œil."
+    ]
+  },
+  {
     "v": "2026.11.06.6",
     "date": "2026-11-06",
     "title": "Sélection des icônes : lumière plus naturelle",
