@@ -1,8 +1,8 @@
 #!/bin/sh
 # poweroff-trace.sh - READ-ONLY: records what happens when the TV is turned off with the remote (why it takes ~10 s).
 # Usage from the PC:   ./tv.sh -s < tools/poweroff-trace.sh      then press Power ONCE within 60 s, wait until the screen is black,
-#                      turn the TV back on, and read the result:  ./tv.sh -s < tools/poweroff-trace.sh show
-#                      (or: ./tv.sh 'cat /media/developer/tv-debloat/state/poweroff-trace*.txt; cat /proc/uptime')
+#                      turn the TV back on, and read the result ON THE TV with `sh poweroff-trace.sh show` (tv.sh -s drops arguments), or from the PC:
+#                      ./tv.sh 'cd /media/developer/tv-debloat/state; cat /proc/uptime poweroff-trace.txt poweroff-dmesg.txt poweroff-messages.txt'
 # It changes nothing: it only listens for 120 s, then stops by itself. Everything is written to flash and synced every half second, so the
 # last moments before a full shutdown survive it:
 #   poweroff-trace.txt      power state (subscription AND a poll every 0.5 s), app life events, processes stuck in D state, busiest processes
