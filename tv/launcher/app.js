@@ -1266,13 +1266,19 @@ function netLabel(){ api('/api/net', function(err, j){ if (!j || !j.returnValue)
 var appsAt = 0;
 function onShow(){
   tick(); activity();
-  api('/api/saver/take', function(err, j){ if (j && j.take && S.saver.on) saverStart(); });      // LG's own screensaver was replaced by ours (saver-take.sh)
+  clearTimeout(onHide.t);
+  saverTake(function(take){ if (take && S.saver.on) saverStart(); });      // LG's own screensaver was replaced by ours (saver-take.sh); a no-op if ours is still on
   if (Date.now() - appsAt > 60000) { appsAt = Date.now(); loadApps(function(ok){ if (ok) focusItem(Math.min(1, rows.length - 1), 0); }); }
   wxLoad(false); loadSettings(); refreshPhotos(function(ch){ if (ch) bgApply(true); });
   if (photos.length && S.bg.on && Date.now() - bgAt > Math.max(1, S.bg.everyMin) * 60000) bgShow(bgIx + 1);
   netLabel(); if (!SETMODE) ecoRead();
 }
-function onHide(){ clearTimeout(idleT); if (saverOn) saverStop(); if (mtop() === 'panel') panelClose(); }
+// Our saver is on and LG's (invisible) saver shows up: saver-take.sh closes it and launches Home again, so the page is hidden for a moment and/or gets
+// webOSRelaunch. That used to stop ours and start it again with the next look (a flicker, "two savers"). Now a hide waits 3 s before stopping
+// the saver, and a relaunch asks saver-take first: if it was the swap, the saver simply stays as it is.
+var takeAt = 0;
+function saverTake(cb){ if (Date.now() - takeAt < 5000) return cb(true); api('/api/saver/take', function(err, j){ if (j && j.take) takeAt = Date.now(); cb(Date.now() - takeAt < 5000); }); }
+function onHide(){ clearTimeout(idleT); clearTimeout(onHide.t); if (saverOn) onHide.t = setTimeout(function(){ if (saverOn && document.hidden) saverStop(); }, 3000); if (mtop() === 'panel') panelClose(); }
 
 if (INPMODE) {
   /* ---- Inputs overlay: only the Inputs list (opened by the Input / Guide keys); a second press of the key (webOSRelaunch) closes it ---- */
@@ -1291,8 +1297,12 @@ if (INPMODE) {
   requestAnimationFrame(function(){ requestAnimationFrame(function(){ var t = window.performance && performance.timing || {}, n = t.navigationStart || 0; api('/api/qs?m=settings-painted_nav=' + (Date.now() - n) + '_dom=' + (t.domContentLoadedEventEnd - n) + '_load=' + (t.loadEventEnd - n) + '_resp=' + (t.responseEnd - n) + '_dl=' + (t.domLoading - n) + '_script=' + (t.domInteractive - n) + '_js0=' + (T0 - n) + '_js1=' + (T1 - n), noop); }); });     // first frame is on screen: lets the TV log how long the key took
   if (MOCK && /settings=(\w+)/.test(location.search)) setTimeout(function(){ for (var i = 0; i < cats.length; i++) if (cats[i].id === /settings=(\w+)/.exec(location.search)[1]) { catIdx = i; } catClass(); openPane(); if (/row=(\d+)/.test(location.search)) sFocus(parseInt(/row=(\d+)/.exec(location.search)[1], 10), 0); }, 1200);
 } else {
-  document.addEventListener('visibilitychange', function(){ if (document.hidden) onHide(); else { if (!settingsOn) focusItem(1, 0); onShow(); } });
-  document.addEventListener('webOSRelaunch', function(){ if (saverOn) saverStop(); while (mstack.length) { var t = mtop(); if (t === 'settings') closeSettings(); else if (t === 'panel') panelClose(); else if (t === 'qr') qrClose(); else if (t === 'keypad') keypadClose(); else if (t === 'editor') edClose(); else mstack.pop(); } focusItem(1, 0); onShow(); });
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) onHide(); else { if (saverOn) { clearTimeout(onHide.t); saverTake(noop); return; } if (!settingsOn) focusItem(1, 0); onShow(); } });
+  document.addEventListener('webOSRelaunch', function(){
+    if (saverOn) { saverTake(function(take){ if (take) { clearTimeout(onHide.t); dlog('saver kept (LG saver swap)'); } else { saverStop(); relaunched(); } }); return; }
+    relaunched();
+  });
+  function relaunched(){ while (mstack.length) { var t = mtop(); if (t === 'settings') closeSettings(); else if (t === 'panel') panelClose(); else if (t === 'qr') qrClose(); else if (t === 'keypad') keypadClose(); else if (t === 'editor') edClose(); else mstack.pop(); } focusItem(1, 0); onShow(); }
   window.addEventListener('resize', function(){ layoutRows(); });
   // the Settings overlay sits on top of Home without hiding it, so Home never gets a "visible" event: pick up what changed when the overlay closes
   window.addEventListener('focus', function(){ if (document.hidden || saverOn) return; updPoll(); loadSettings(); refreshPhotos(function(ch){ if (ch) { if (!hasBg()) bgApply(true); else if (photos[bgIx]) bgShow(bgIx); } }); });

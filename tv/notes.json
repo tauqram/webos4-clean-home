@@ -1,5 +1,13 @@
 [
   {
+    "v": "2026.11.06.20",
+    "date": "2026-11-06",
+    "title": "Veille : plus de double démarrage",
+    "notes": [
+      "Environ une minute après le début de la veille, l'écran pouvait scintiller, revenir un instant à l'accueil puis repartir sur un autre fond de veille. C'est corrigé : la veille reste en place, avec le même fond, jusqu'à ce que vous touchiez la télécommande."
+    ]
+  },
+  {
     "v": "2026.11.06.19",
     "date": "2026-11-06",
     "title": "Icônes : sans lumière ni contour",
