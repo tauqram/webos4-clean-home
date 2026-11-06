@@ -501,3 +501,14 @@ Verified in headless Chromium at 3840x2160 (dpr 2): rendering, steps, fuchsia, n
 ### 2026.11.06.11 - Screensaver smoothness probe
 
 `app.js` `saverPerf()`: 8 s after the screensaver starts, counts frames for 3 s and logs `perf saver <look> dpr=.. fps=.. worst=..ms` to `/tmp/launcher-page.log` (at most 20 times per page life). `themes.js` exposes `Theme.saverName()`. Read with `./tv.sh 'grep perf /tmp/launcher-page.log | tail -15'`. Undo: revert the commit.
+
+### 2026.11.06.12 - Power key instant again (LG's power service no longer stuck by our screensaver swap)
+- Symptom (Sam, C9): Power took ~10 s and the TV then did a FULL shutdown even with Quick Start+ on, so the next start was slow and showed LG's old Home first.
+- Cause (traces: `tools/poweroff-trace.sh`, `tools/saver-power-info.sh`, `tools/saver-unstick-test.sh`): tvpower launches `com.webos.app.screensaver` from
+  `Active / processing: Screen Saver Ready` (about 2-3 min idle on Home, even with `screenSaverEnabled` off) and waits there until it has seen the saver
+  start. `saver-take.sh` closed it 0.25 s after launch, so tvpower stayed in that state; `turnOnScreen` was refused ("power is busy").
+- Fix: `saver-take.sh release [now]` launches LG's saver once more while the swap looks away for 20 s (`/tmp/saver-unstick`): tvpower returns to plain
+  `Active` within a second and the saver leaves unseen; Home is brought back if it was in front. Run 2 s after every swap, and by the home-on.sh
+  watchdog every 20 s (acts only on a second sighting 15 s apart). Proven by hand on the C9 (Power instant, wake in 2-3 s); the automatic path is
+  tested only against a stubbed `lun` on Linux so far.
+- Undo: previous `tv/saver-take.sh` / `tv/home-on.sh`; or `touch state/saver-lg` (LG's saver stays, no swap, no release needed).

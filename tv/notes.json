@@ -1,5 +1,16 @@
 [
   {
+    "v": "2026.11.06.12",
+    "date": "2026-11-06",
+    "title": "La télé s'éteint de nouveau tout de suite",
+    "notes": [
+      "Appuyer sur Power éteint de nouveau la télé immédiatement, au lieu d'attendre une dizaine de secondes.",
+      "Du coup, le rallumage redevient rapide (2-3 secondes) et arrive directement sur votre accueil, sans passer par l'ancien écran de LG.",
+      "La cause : notre écran de veille remplaçait celui de LG un peu trop vite, et la télé restait coincée en attendant le sien.",
+      "La nuit (pendant les heures d'arrêt complet choisies dans Réglages), l'extinction reste un vrai arrêt, un peu plus long : c'est voulu."
+    ]
+  },
+  {
     "v": "2026.11.06.11",
     "date": "2026-11-06",
     "title": "Veille : mesure de fluidité",
