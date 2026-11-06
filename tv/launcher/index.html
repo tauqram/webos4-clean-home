@@ -238,7 +238,62 @@ body.hasbg #hsub{color:#d5dbe8;text-shadow:0 .1rem .5rem rgba(0,0,0,.8)}
 #saver.nophoto #sinfo .w .p{font-size:1.2rem;color:#4c5058}
 #saver.noclock #sinfo{display:none}
 #saver.fxon #sglow{display:none !important}
+#saver.fxon #sdim{display:none}
 #saver.fxon{background:#000}
+/* screensaver looks Aurore / Eclipse / Soie (themes.js builds them in #svfx only while the saver runs, so their pictures are
+   in memory only then). Pictures computed on the PC by tools/render-saver.py, 4K copies picked on a 4K page. Only transform
+   and opacity move. Horizontal slides use steps(): one step = half a CSS px = exactly one pixel on a 4K page, so the fine
+   lines are never resampled between two pixels and stay sharp. 1rem = 16 px on a 1920 px page. */
+#svfx{position:absolute;left:0;top:0;width:100%;height:100%;z-index:1;overflow:hidden;display:none}
+#svfx.on{display:block}
+#svfx .sv{position:absolute;will-change:transform,opacity}
+#svfx .svi{position:absolute;left:0;top:0;width:100%;height:100%;background-position:0 0;background-size:100% 100%;background-repeat:no-repeat;will-change:transform,opacity}
+.sv-aurore .a1,.sv-aurore .a2{left:-12rem;top:0;width:144rem;height:51.25rem}
+.sv-aurore .a3{left:13rem;top:0;width:93.75rem;height:51.25rem}
+.sv-aurore .a1{-webkit-animation:svax1 80s steps(552) infinite alternate;animation:svax1 80s steps(552) infinite alternate}
+.sv-aurore .a2{-webkit-animation:svax2 97s steps(552) infinite alternate;animation:svax2 97s steps(552) infinite alternate}
+.sv-aurore .a3{-webkit-animation:svax3 150s steps(1280) infinite alternate;animation:svax3 150s steps(1280) infinite alternate}
+.sv-aurore .a1 .svi{background-image:url(bg/sv-aur1.webp);background-image:-webkit-image-set(url(bg/sv-aur1.webp) 1x,url(bg/sv-aur1@2x.webp) 2x);-webkit-transform-origin:50% 74%;transform-origin:50% 74%;-webkit-animation:svbr1 13s ease-in-out infinite alternate;animation:svbr1 13s ease-in-out infinite alternate}
+.sv-aurore .a2 .svi{background-image:url(bg/sv-aur2.webp);background-image:-webkit-image-set(url(bg/sv-aur2.webp) 1x,url(bg/sv-aur2@2x.webp) 2x);-webkit-transform-origin:50% 61%;transform-origin:50% 61%;-webkit-animation:svbr2 17s ease-in-out infinite alternate;animation:svbr2 17s ease-in-out infinite alternate}
+.sv-aurore .a3 .svi{opacity:0;background-image:url(bg/sv-aur3.webp);background-image:-webkit-image-set(url(bg/sv-aur3.webp) 1x,url(bg/sv-aur3@2x.webp) 2x);-webkit-transform-origin:50% 63%;transform-origin:50% 63%;-webkit-animation:svfu 71s ease-in-out 9s infinite;animation:svfu 71s ease-in-out 9s infinite}
+@-webkit-keyframes svax1{from{-webkit-transform:translate3d(-8.625rem,0,0)}to{-webkit-transform:translate3d(8.625rem,0,0)}}
+@keyframes svax1{from{transform:translate3d(-8.625rem,0,0)}to{transform:translate3d(8.625rem,0,0)}}
+@-webkit-keyframes svax2{from{-webkit-transform:translate3d(8.625rem,0,0)}to{-webkit-transform:translate3d(-8.625rem,0,0)}}
+@keyframes svax2{from{transform:translate3d(8.625rem,0,0)}to{transform:translate3d(-8.625rem,0,0)}}
+@-webkit-keyframes svax3{from{-webkit-transform:translate3d(-10rem,0,0)}to{-webkit-transform:translate3d(30rem,0,0)}}
+@keyframes svax3{from{transform:translate3d(-10rem,0,0)}to{transform:translate3d(30rem,0,0)}}
+@-webkit-keyframes svbr1{from{opacity:.55;-webkit-transform:scale(1,.94)}to{opacity:1;-webkit-transform:scale(1,1.06)}}
+@keyframes svbr1{from{opacity:.55;transform:scale(1,.94)}to{opacity:1;transform:scale(1,1.06)}}
+@-webkit-keyframes svbr2{from{opacity:.9;-webkit-transform:scale(1,1.05)}to{opacity:.25;-webkit-transform:scale(1,.95)}}
+@keyframes svbr2{from{opacity:.9;transform:scale(1,1.05)}to{opacity:.25;transform:scale(1,.95)}}
+/* the fuchsia curtain: hidden most of the time, it glows up for about 20 s once a minute or so */
+@-webkit-keyframes svfu{0%,52%{opacity:0;-webkit-transform:scale(1,.92)}74%{opacity:.85;-webkit-transform:scale(1,1.04)}94%,100%{opacity:0;-webkit-transform:scale(1,1)}}
+@keyframes svfu{0%,52%{opacity:0;transform:scale(1,.92)}74%{opacity:.85;transform:scale(1,1.04)}94%,100%{opacity:0;transform:scale(1,1)}}
+.sv-eclipse .g{left:77.5rem;top:29.375rem;width:0;height:0;-webkit-animation:svedr 240s ease-in-out infinite alternate;animation:svedr 240s ease-in-out infinite alternate}
+.sv-eclipse .rot{left:-34.375rem;top:-34.375rem;width:68.75rem;height:68.75rem;-webkit-animation:svrot 180s linear infinite;animation:svrot 180s linear infinite}
+.sv-eclipse .rim{background-image:url(bg/sv-ecl-rim.webp);background-image:-webkit-image-set(url(bg/sv-ecl-rim.webp) 1x,url(bg/sv-ecl-rim@2x.webp) 2x)}
+.sv-eclipse .bl{background-image:url(bg/sv-ecl-bloom.webp);-webkit-animation:svbl 7s ease-in-out infinite alternate;animation:svbl 7s ease-in-out infinite alternate}
+@-webkit-keyframes svrot{from{-webkit-transform:rotate(-40deg)}to{-webkit-transform:rotate(320deg)}}
+@keyframes svrot{from{transform:rotate(-40deg)}to{transform:rotate(320deg)}}
+@-webkit-keyframes svbl{from{opacity:.45}to{opacity:1}}
+@keyframes svbl{from{opacity:.45}to{opacity:1}}
+@-webkit-keyframes svedr{from{-webkit-transform:translate3d(-3.75rem,-1.25rem,0)}to{-webkit-transform:translate3d(3.75rem,1.875rem,0)}}
+@keyframes svedr{from{transform:translate3d(-3.75rem,-1.25rem,0)}to{transform:translate3d(3.75rem,1.875rem,0)}}
+/* Soie: one picture one period (120rem) wide, repeated side by side (decoded once), slid by exactly one period: no seam */
+.sv-soie .s1,.sv-soie .s2{left:0;width:240rem;height:40rem}
+.sv-soie .s1{top:9.375rem;-webkit-animation:svsx1 64s steps(3840) infinite;animation:svsx1 64s steps(3840) infinite}
+.sv-soie .s2{top:11.875rem;-webkit-animation:svsx2 128s steps(3840) infinite;animation:svsx2 128s steps(3840) infinite}
+.sv-soie .svi{background-size:120rem 40rem;background-repeat:repeat-x}
+.sv-soie .s1 .svi{background-image:url(bg/sv-silk1.webp);background-image:-webkit-image-set(url(bg/sv-silk1.webp) 1x,url(bg/sv-silk1@2x.webp) 2x);-webkit-animation:svbl1 11s ease-in-out infinite alternate;animation:svbl1 11s ease-in-out infinite alternate}
+.sv-soie .s2 .svi{background-image:url(bg/sv-silk2.webp);background-image:-webkit-image-set(url(bg/sv-silk2.webp) 1x,url(bg/sv-silk2@2x.webp) 2x);-webkit-animation:svbl2 15s ease-in-out infinite alternate;animation:svbl2 15s ease-in-out infinite alternate}
+@-webkit-keyframes svsx1{from{-webkit-transform:translate3d(-120rem,0,0)}to{-webkit-transform:translate3d(0,0,0)}}
+@keyframes svsx1{from{transform:translate3d(-120rem,0,0)}to{transform:translate3d(0,0,0)}}
+@-webkit-keyframes svsx2{from{-webkit-transform:translate3d(0,0,0)}to{-webkit-transform:translate3d(-120rem,0,0)}}
+@keyframes svsx2{from{transform:translate3d(0,0,0)}to{transform:translate3d(-120rem,0,0)}}
+@-webkit-keyframes svbl1{from{opacity:.75}to{opacity:1}}
+@keyframes svbl1{from{opacity:.75}to{opacity:1}}
+@-webkit-keyframes svbl2{from{opacity:.9}to{opacity:.35}}
+@keyframes svbl2{from{opacity:.9}to{opacity:.35}}
 
 /* ===== themes (themes.js picks one: body.th-<id>); your gallery photos, when switched on, cover the theme background ===== */
 :root{--accent:#ffffff}
@@ -432,7 +487,7 @@ body.tilefoc:not(.editing) #view .tile:not(.foc) .ic{opacity:.62}
   <div class="row"><div class="rowlabel">Favoris</div><div id="dock"></div></div>
   <div class="row"><div class="rowlabel">Applications</div><div id="grid"></div></div>
 </div>
-<div id="saver"><canvas id="fx"></canvas><div id="sglow"></div><div id="sdim"></div><div id="scrimS"></div>
+<div id="saver"><canvas id="fx"></canvas><div id="svfx"></div><div id="sglow"></div><div id="sdim"></div><div id="scrimS"></div>
   <div id="sinfo"><div class="t"></div><div class="d"></div><div class="w"></div></div></div>
 <div id="panel"><div id="pbox"><div id="ptitle"></div><div id="plist"></div><div id="phint">OK pour choisir &nbsp;&middot;&nbsp; Retour pour fermer</div></div></div>
 <div id="settings">

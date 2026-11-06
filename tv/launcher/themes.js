@@ -133,11 +133,32 @@ var PALETTES = {
   noel: ['#ffffff', '#cfe0ff', '#ffd27a', '#ff6b6b'],
   studio: ['#f2f2f0', '#d8d6d0', '#b9b7b0', '#ffffff'],
 };
+// Aurore / Eclipse / Soie: pictures moved by CSS (index.html, "screensaver looks"). The elements exist only while the saver
+// runs; stop() removes them after the saver's fade-out, so their pictures leave memory with them.
+var svClear = null;
+function domFx(name, html){
+  var f = function(){
+    var box = document.getElementById('svfx'); if (!box) return null;
+    clearTimeout(svClear); box.innerHTML = html; box.className = 'on sv-' + name;
+    return {stop: function(){ svClear = setTimeout(function(){ box.className = ''; box.innerHTML = ''; }, 1400); }};
+  };
+  f.dom = true; return f;
+}
+FX.aurore = domFx('aurore', '<div class="sv a2"><div class="svi"></div></div><div class="sv a3"><div class="svi"></div></div><div class="sv a1"><div class="svi"></div></div>');
+FX.eclipse = domFx('eclipse', '<div class="sv g"><div class="sv rot"><div class="svi rim"></div><div class="svi bl"></div></div></div>');
+FX.soie = domFx('soie', '<div class="sv s2"><div class="svi"></div></div><div class="sv s1"><div class="svi"></div></div>');
+var ROTATION = ['aurore', 'eclipse', 'soie'], rotIx = Math.floor(Math.random() * ROTATION.length);
+
 var running = null;
-function saverFx(cv, choice){
+// choice: 'auto' (or the old 'theme') = the next of Aurore / Eclipse / Soie each time the saver starts; lowmem: the TV is
+// short of memory, so the lightest look (Eclipse, about 20 MB of pictures at 4K) replaces the two others.
+function saverFx(cv, choice, lowmem){
   saverFxStop();
-  var t = current || resolve('auto'), name = choice && choice !== 'theme' ? choice : (THEMES[t] && THEMES[t].fx);
-  if (!name || name === 'none' || !FX[name]) return;
+  var t = current || resolve('auto'), name = choice;
+  if (!name || name === 'theme' || name === 'auto') { rotIx = (rotIx + 1) % ROTATION.length; name = ROTATION[rotIx]; }
+  if (lowmem && (name === 'aurore' || name === 'soie')) name = 'eclipse';
+  if (name === 'none' || !FX[name]) return;
+  if (FX[name].dom) { cv.style.display = 'none'; running = FX[name](); return; }
   cv.style.display = 'block';
   running = FX[name](cv, PALETTES[t] || PALETTES.noir, !!(THEMES[t] && THEMES[t].soft));
 }

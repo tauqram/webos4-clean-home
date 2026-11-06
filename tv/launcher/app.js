@@ -27,7 +27,7 @@ var DEFAULTS = {
   weather: {mode: 'auto', zip: '', unit: 'C'},
   clock24: true,
   bg: {on: true, everyMin: 10},
-  saver: {on: true, idleMin: 2, photos: true, slideSec: 300, weather: true, dim: 20, level: 15, fx: 'theme', clock: true},
+  saver: {on: true, idleMin: 2, photos: true, slideSec: 300, weather: true, dim: 20, level: 15, fx: 'auto', clock: true},
   theme: 'auto',
   ui: {hideCursor: true, clockFont: 'bricolage'},
   dock: ['netflix','youtube.leanback.v4','amazon','com.disney.disneyplus-prod'],
@@ -389,7 +389,7 @@ function saverStart(){
   $('sdim').style.opacity = ((S.saver.dim === undefined ? 30 : S.saver.dim) / 100);
   blDim(); api('/api/history?v=saver', noop);      // Back forgets where you were, if the options say so
   $('scrimS').style.display = withPhotos ? 'block' : 'none';
-  if (withPhotos) { pIx = (bgIx + 1) % photos.length; showNext(); } else { drift(); if (window.Theme) Theme.saverFx($('fx'), S.saver.fx); }
+  if (withPhotos) { pIx = (bgIx + 1) % photos.length; showNext(); } else { drift(); if (window.Theme) Theme.saverFx($('fx'), S.saver.fx, LOWMEM); }
   dlog('saver on photos=' + withPhotos);
 }
 function saverStop(){
@@ -631,7 +631,7 @@ cats = [
     chc('Démarrer après', '', [[1,'1 min'],[2,'2 min'],[5,'5 min'],[10,'10 min'],[15,'15 min'],[30,'30 min']], function(){ return S.saver.idleMin; }, function(v){ setPath('saver.idleMin', v); }),
     tgl('Photos de la galerie pendant la veille', 'Désactivé = écran noir avec l’heure', function(){ return S.saver.photos; }, function(b){ setPath('saver.photos', b); }),
     chc('Changer de photo toutes les', 'Lent, c’est plus reposant pour les yeux et pour la TV', [[12,'12 s'],[30,'30 s'],[60,'1 min'],[120,'2 min'],[300,'5 min'],[600,'10 min'],[900,'15 min']], function(){ return S.saver.slideSec; }, function(v){ setPath('saver.slideSec', v); }),
-    chc('Animation de veille', 'Sans photos, la veille reste noire (pixels éteints) avec cette animation de temps en temps', [['theme', 'Selon le thème'], ['fireworks', 'Feux d’artifice'], ['none', 'Aucune (écran noir)']], function(){ return S.saver.fx || 'theme'; }, function(v){ setPath('saver.fx', v); }),
+    chc('Animation de veille', 'Quand la veille n’affiche pas de photos : un fond presque noir (pixels éteints, idéal pour l’OLED) avec cette animation', [['auto', 'Alternance (une différente à chaque fois)'], ['aurore', 'Aurore boréale'], ['eclipse', 'Éclipse'], ['soie', 'Soie'], ['fireworks', 'Feux d’artifice'], ['none', 'Aucune (écran noir)']], function(){ var f = S.saver.fx || 'auto'; return f === 'theme' ? 'auto' : f; }, function(v){ setPath('saver.fx', v); }),
     tgl('Heure pendant la veille', 'Petite et grise, elle change de place chaque minute', function(){ return S.saver.clock !== false; }, function(b){ setPath('saver.clock', b); }),
     tgl('Météo pendant la veille', '', function(){ return S.saver.weather; }, function(b){ setPath('saver.weather', b); wxRender(); }),
     sld('Assombrissement de la veille', 'Assombrit la photo pour reposer les yeux ; l’heure reste lisible. 0 = aucun assombrissement', 0, 80, 5, function(){ return S.saver.dim === undefined ? 30 : S.saver.dim; }, function(v){ setPath('saver.dim', v); }),
