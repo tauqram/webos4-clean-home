@@ -222,16 +222,28 @@ function fitName(t){
   if (r.left < m) d = m - r.left; else if (r.right > innerWidth - m) d = innerWidth - m - r.right;
   if (d) nm.style.left = Math.round(d) + 'px';
 }
+// very dark icons (Canal+, Apple TV...) vanish on a dark Home when focused: they get the class dk (a thin light contour on focus).
+// Known from LG's iconColor; otherwise the picture itself is sampled once it loads (works only where the page may read its pixels; silently skipped if not)
+function lum(hex){ var h = hex.replace('#', ''); if (h.length === 3) h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+  var n = parseInt(h, 16); return (0.2126 * (n >> 16 & 255) + 0.7152 * (n >> 8 & 255) + 0.0722 * (n & 255)) / 255; }
+function darkCheck(t, img){
+  try { var c = document.createElement('canvas'); c.width = c.height = 16; var x = c.getContext('2d'); x.drawImage(img, 0, 0, 16, 16);
+    var d = x.getImageData(0, 0, 16, 16).data, s = 0, w = 0;
+    for (var i = 0; i < d.length; i += 4) { var al = d[i + 3] / 255; s += al * (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255; w += al; }
+    if (w > 128 && s / w < 0.16) cls(t, 'dk', true);
+  } catch (e) {}
+}
 function mkTile(a, big){
   var ov = CFG.iconByTitle[a.title]; if (ov) { a = clone(a); a.iconColor = ov.c; a.largeIcon = ov.src; }
   var t = el('div', 'tile ' + (big ? 'big' : 'sm')), ic = el('div', 'ic'), img = el('img'); img.alt = ''; img.src = iconUrl(a.largeIcon || a.icon);
   // LG's own Home paints each tile with the app's iconColor and draws the (often transparent) icon over it: do the same, so icons fill their tile as on LG's bar
   var tb = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(a.iconColor || '') ? a.iconColor : '';
-  if (tb) { ic.style.setProperty('--tb', tb); ic.className += ' lgc' + (CFG.iconInset[a.id] ? ' ins' : ''); }
+  if (tb) { ic.style.setProperty('--tb', tb); ic.className += ' lgc' + (CFG.iconInset[a.id] ? ' ins' : ''); if (lum(tb) < 0.16) t.className += ' dk'; }
   else if (big) {
     ic.style.background ='linear-gradient(150deg, rgba(255,255,255,.12) 0%, rgba(7,8,12,.55) 100%), ' + glowFor(a);   // wide card tinted with the app's colour
     var tint = el('div', 'tint'); tint.style.background = glowFor(a); ic.appendChild(tint);      // a flat tint, used by themes that want it (Azion)
   }
+  if (!tb) img.onload = function(){ darkCheck(t, img); };
   ic.appendChild(img); ic.appendChild(el('div', 'ring')); t.appendChild(ic);
   var nm = el('div', 'nm'); nm.textContent = shortName(a.title || a.id); t.appendChild(nm); t._app = a; return t;
 }

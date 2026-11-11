@@ -1,5 +1,14 @@
 [
   {
+    "v": "2026.11.06.26",
+    "date": "2026-11-11",
+    "title": "Icône choisie plus lumineuse, contour sur les icônes sombres",
+    "notes": [
+      "L'icône choisie s'éclaire un peu en plus de grossir, et les autres pâlissent un peu plus : on voit mieux où l'on est.",
+      "Les icônes très sombres (Canal+, Netflix…) reçoivent un fin contour clair quand on les choisit, pour ne plus se perdre sur le fond noir."
+    ]
+  },
+  {
     "v": "2026.11.06.25",
     "date": "2026-11-11",
     "title": "Veille : ne s'interrompt plus toute seule",

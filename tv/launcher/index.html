@@ -456,7 +456,11 @@ body.th-aurore .hill{display:block}
 @keyframes tvtiltl{0%{transform:perspective(60rem) rotateY(0) scale(1)}45%{transform:perspective(60rem) rotateY(6deg) scale(1.15)}75%{transform:perspective(60rem) rotateY(-1.2deg) scale(1.125)}100%{transform:perspective(60rem) rotateY(0) scale(1.13)}}
 @keyframes tvtiltd{0%{transform:perspective(60rem) rotateX(0) scale(1)}45%{transform:perspective(60rem) rotateX(6deg) scale(1.15)}75%{transform:perspective(60rem) rotateX(-1.2deg) scale(1.125)}100%{transform:perspective(60rem) rotateX(0) scale(1.13)}}
 @keyframes tvtiltu{0%{transform:perspective(60rem) rotateX(0) scale(1)}45%{transform:perspective(60rem) rotateX(-6deg) scale(1.15)}75%{transform:perspective(60rem) rotateX(1.2deg) scale(1.125)}100%{transform:perspective(60rem) rotateX(0) scale(1.13)}}
-body.tilefoc:not(.editing) #view .tile:not(.foc) .ic{opacity:.62}
+body.tilefoc:not(.editing) #view .tile:not(.foc) .ic{opacity:.55}
+/* the focused icon lights up a little (Apple: "illumination"): a plain brightness filter on its picture, no light effect drawn over it */
+.tile.foc:not(.edit) .ic img{-webkit-filter:brightness(1.12);filter:brightness(1.12)}
+/* very dark icons (class dk, from app.js): a thin light contour when focused, so you can see where you are */
+.tile.dk.foc .ic,.tile.dk.edit .ic{box-shadow:0 0 0 .14rem rgba(255,255,255,.5),0 2.4rem 4rem -.8rem rgba(0,0,0,.8),0 .6rem 1.2rem rgba(0,0,0,.35)}
 /* moving an icon (long press): no ring either (Sam 2026-11-06); the icon stays lifted and jiggles, the others fade further back */
 .tile.edit .ic{box-shadow:0 2.4rem 4rem -.8rem rgba(0,0,0,.8),0 .6rem 1.2rem rgba(0,0,0,.35)}
 body.editing #view .tile:not(.edit) .ic{opacity:.4}
