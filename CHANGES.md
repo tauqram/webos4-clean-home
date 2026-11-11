@@ -610,3 +610,6 @@ Sam: paused on Canal+ (or on Canal+'s home), the TV went to the screensaver and 
 - `tv/launcher/app.js`: `openThemes()` now opens a carousel of 16:9 previews with two tabs: Accueil (`S.theme`, same list as `Theme.options()`) and Écran de veille (`saver.fx` auto/aurore/eclipse/soie/fireworks/none, or `saver.photos`). ◀ ▶ browse, ▲ tabs, OK applies and closes, Back closes. Home content (`#view`, `#updpill`) fades out while it is open (`body.thpon`); the previews are removed from the DOM on close.
 - Previews: `tv/launcher/bg/pv-th-*.webp` / `pv-sv-*.webp` (960x540, about 230 KB in all, copied to RAM with the other bg pictures) made by `tools/make-theme-thumbs.js` (+ `.py`): the preview page with icons replaced by plain squares and the clock at 10:09, no photos. Re-run after changing a theme's look.
 - Undo: revert the commit. Previewed on the PC; not yet seen on the TV.
+
+### 2026.11.06.32 - Home rows back at their old height
+- `tv/launcher/index.html`: the two row labels are back but `visibility:hidden`, so the favourites and app rows sit exactly where they were with the labels (Sam: removing them moved the icons up too close to the clock). Undo: revert the commit.
