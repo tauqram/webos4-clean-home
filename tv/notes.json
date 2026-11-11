@@ -1,4 +1,12 @@
 [
+  {
+    "v": "2026.11.06.29",
+    "date": "2026-11-11",
+    "title": "Après la veille, retour à l'appli",
+    "notes": [
+      "Si la veille démarre pendant que vous êtes dans une appli (par exemple Canal+ en pause), appuyer sur une touche vous ramène dans cette appli au lieu de l'accueil. C'est nouveau et pas encore essayé sur la télé. L'appli devrait revenir là où vous l'aviez laissée, mais c'est elle qui décide."
+    ]
+  },
   {"v": "2026.11.06.28", "date": "2026-11-11", "title": "Nom court de M6+ rétabli", "notes": ["L'appli M6 avait changé son nom après une mise à jour, si bien que son nom complet réapparaissait sous l'icône. Elle s'appelle de nouveau simplement M6+, même si l'appli modifie un peu son titre à l'avenir."]},
   {
     "v": "2026.11.06.27",

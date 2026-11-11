@@ -58,6 +58,12 @@ on_fresh() { [ -e /tmp/saver-on ] && [ -z "$(find /tmp/saver-on -mmin +1 2>/dev/
 ours=no; on_fresh && ours=yes
 o=$(cut -d. -f1 /tmp/saver-off.at 2>/dev/null); [ -n "$o" ] && [ $((now - o)) -le 6 ] && ours=yes
 log "saver-take: LG's screensaver appeared, showing ours (ours already on: $ours)"
+# Where was the TV (Sam, 2026-11-11: paused on Canal+, woke up on Home)? LG's saver is a window over the app, the app stays the foreground app.
+# Remember it in /tmp/saver-return: the page asks /api/saver/back when a key wakes our saver and that app is launched again (it is still resident,
+# so it comes back where it was). Home in front: keep whatever is there (the page forgets it when it starts a saver of its own).
+fg=$(lun luna://com.webos.applicationManager/getForegroundAppInfo '{}' | sed -n 's/.*"appId" *: *"\([^"]*\)".*/\1/p' | head -1)
+case "$fg" in ''|"$HOME_ID"|"$SET_ID"|"$INP_ID"|com.webos.app.screensaver*|com.webos.app.quicksettings|com.webos.app.notification*|com.webos.app.splash) ;;
+  *) echo "$fg" > /tmp/saver-return; log "saver-take: will return to $fg when the saver ends";; esac
 # Let tvpower see LG's saver start BEFORE closing it (2026.11.06.16): closed too early, tvpower stays in "Active / Screen Saver Ready" (slow Power key,
 # full shutdown). Wait (0.2 s steps, at most 2 s) until it leaves that state, then close. The .15 version closed at once and relaunched the saver to
 # free tvpower, so LG's saver flashed twice; this way it shows once, briefly. If tvpower is still stuck after the close, `release swap` frees it

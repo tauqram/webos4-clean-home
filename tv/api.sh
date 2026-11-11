@@ -225,6 +225,9 @@ except Exception: print('no')" 2>/dev/null)
                 hdr "200 OK"; LW=10000 lun luna://com.webos.applicationManager/launch '{"id":"com.palm.app.settings","params":{}}';;
   /api/settings/close) hdr "200 OK"; echo '{"ok":true}'; ( usleep 300000; sh "$D/settings-open.sh" close "$(qget id)" ) </dev/null >/dev/null 2>&1 &
                 ;;
+  /api/saver/back) # our saver ended: v=go -> back to the app it replaced (saver-take.sh wrote /tmp/saver-return), v=forget -> drop it
+                a=$(cat /tmp/saver-return 2>/dev/null | tr -cd 'A-Za-z0-9._-'); rm -f /tmp/saver-return; hdr "200 OK"
+                if [ "$(qget v)" = go ] && [ -n "$a" ]; then echo "{\"app\":\"$a\"}"; log "saver: back to $a"; lun luna://com.webos.applicationManager/launch "{\"id\":\"$a\"}" >/dev/null; else echo '{"app":""}'; fi;;
   /api/saver/take) # the page was shown: did saver-take.sh ask for our screensaver in the last minute?
                 hdr "200 OK"; if [ -e /tmp/saver-now ] && [ -z "$(find /tmp/saver-now -mmin +1 2>/dev/null)" ]; then rm -f /tmp/saver-now; echo '{"take":true}'; else echo '{"take":false}'; fi;;
   /api/settings/launch) hdr "200 OK"; ( sh "$D/settings-open.sh" launch "$(qget id)" </dev/null >/dev/null 2>&1 & ); echo '{"ok":true}';;

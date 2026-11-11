@@ -427,7 +427,9 @@ function blDim(){
 function blRestore(){ clearInterval(blT); if (blOn) { blOn = false; api('/api/backlight?v=restore', noop, 15000); } }
 function saverStart(keep){
   if (saverOn || document.hidden || mstack.length || settingsOn || SETMODE) return;
-  clearTimeout(saverStop.t); saverOn = true; saverStart.at = Date.now(); lastT = lastD = ''; tick(); wxRender();
+  clearTimeout(saverStop.t); saverOn = true; saverStart.at = Date.now();
+  lastT = lastD = ''; tick(); wxRender();
+  if (keep !== true) api('/api/saver/back?v=forget', noop);   // a saver of our own (idle on Home): no app to go back to
   // free the Home background while the screensaver runs: two big photos at once would make the TV swap
   ['bgA', 'bgB'].forEach(function(id){ var l = $(id); l.className = 'bgl'; layerStage(l).lastChild.removeAttribute('src'); }); setBodyBg(false);
   var withPhotos = S.saver.photos && photos.length > 0 && !LOWMEM;
@@ -441,6 +443,7 @@ function saverStart(keep){
 }
 function saverStop(why){
   if (!saverOn) return;
+  api('/api/saver/back?v=' + (/^(key|pointer)/.test(why || '') ? 'go' : 'forget'), noop);   // woken by the remote: back to the app the saver replaced, if any
   dlog('saver: stopped by ' + (why || 'code') + ' after ' + Math.round((Date.now() - (saverStart.at || Date.now())) / 1000) + ' s');
   // leaving: the saver keeps exactly its look (clock, animation, dim) and only fades out over Home (class 'leaving'
   // instead of 'on'); everything is reset once it is invisible. Before, the clock fell back to other styles and
