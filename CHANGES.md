@@ -618,3 +618,7 @@ Sam: paused on Canal+ (or on Canal+'s home), the TV went to the screensaver and 
 - `tv/launcher/app.js` focusItem: on the app rows (R >= 2) the page slides up so the focused row's centre is at 52 % of the screen height (position from offsetTop, not the on-screen box which moves during the slide); favourites / header rows go back to 0. `#view` transition .5s cubic-bezier(.2,0,0,1).
 - `tv/launcher/index.html`: focus / edit / dark-icon shadow `0 1.2rem 3rem -.2rem rgba(0,0,0,.55), 0 0 1.4rem rgba(0,0,0,.3)` (was a long downward 2.4rem/4rem drop).
 - Undo: revert the commit. Previewed on the PC; not yet seen on the TV.
+
+### 2026.11.06.34 - Screensaver: ignore key 1537 (sent by the system when LG's saver starts)
+
+Sam's second trace (2026-11-11, on .27): every ~120 s `saver-take: LG's screensaver appeared` and, 0.8 s later, the page logged `saver: stopped by key 1537 after 116-120 s`; saver-take then relaunched Home ("Home did not come back") and the saver restarted. keyCode 1537 is not a remote key: the system sends it to the page when tvpower starts LG's (invisible) screensaver. So the pointer theory of .25/.27 was wrong (those changes stay; harmless). `onKey` now returns at once for 1537 (no saver stop, no idle reset). Expected on the TV: `ours already on: yes` then `our saver kept running, Home not relaunched`. Tested: node --check. Undo: revert the commit.

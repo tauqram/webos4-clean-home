@@ -1209,6 +1209,9 @@ function edClose(){ mpop('editor'); $('editor').className = ''; $('ghost').inner
 var KEYS = {37: 'L', 38: 'U', 39: 'R', 40: 'D'};
 function onKey(e){
   var k = e.keyCode, wasSaver = saverOn;
+  // 1537: not a remote key. The system sends it to the page each time tvpower starts LG's (invisible) screensaver; it used to stop ours every
+  // 2 minutes (trace of 2026-11-11: "stopped by key 1537" 0.8 s after each "LG's screensaver appeared"). Ignore it completely.
+  if (k === 1537) return;
   activity();
   if (wasSaver) { saverStop('key ' + k); e.preventDefault(); return; }
   var m = mtop();
