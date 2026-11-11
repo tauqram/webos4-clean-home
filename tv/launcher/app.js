@@ -214,7 +214,7 @@ function shortName(t){
   // titles change with app updates ("M6 TV Replay Streaming" became "M6+ TV, Replay, Streaming"): compare letters and digits only, ignoring case
   var key = function(x){ return x.toLowerCase().replace(/[^a-z0-9]/g, ''); }, k = key(t), n;
   for (n in CFG.nameByTitle) if (key(n) === k) return CFG.nameByTitle[n];
-  var s = t.split(/\s+[-\u2013\u2014:|]\s+|\s*[(\[]/)[0].replace(/\s+$/, '') || t;
+  var s = t.split(/\s+[-\u2013\u2014:|]\s+|,\s+|\s*[(\[]/)[0].replace(/\s+$/, '') || t;
   return s.replace(/[A-Z\u00C0-\u00DE]{5,}/g, function(w){ return w.charAt(0) + w.slice(1).toLowerCase(); });
 }
 // keeps the focused icon's name inside the screen: a name wider than its icon is centred under it, but slides in when it would cross the edge
@@ -505,9 +505,16 @@ var SVG_SUN = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1
     SVG_MOON = '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>';
 function ecoShow(v){
   var on = v && v !== 'off', n = {min: 'Éco min', med: 'Éco moyen', max: 'Éco max', auto: 'Éco auto'};
+  if (!$('ecoico')) return;      // the Settings overlay page has no Home header
   $('ecoico').innerHTML = on ? SVG_MOON : SVG_SUN; $('ecolabel').textContent = on ? (n[v] || 'Éco') : 'Éco';
 }
 function ecoRead(cb){ lgLoad('picture', ['energySaving'], function(){ var v = (LGC.picture || {}).energySaving; ecoShow(v); if (cb) cb(v); }); }
+// the same choice as the Home button, first row of Quick settings (Sam): the Home button follows the change
+function ecoRow(){
+  var it = lgChc('picture', 'energySaving', 'Économie d’énergie', 'Baisse la luminosité de l’écran, pour le soir', ECO.map(function(o){ return [o[0], o[1]]; }));
+  it.set = function(v){ lgSet('picture', 'energySaving', v, function(){ ecoShow(v); var o = ECO.filter(function(x){ return x[0] === v; })[0]; toast('Économie d’énergie : ' + (o ? o[1].toLowerCase() : v)); }); };
+  return it;
+}
 function openEco(){
   ecoRead(function(cur){
     panelOpen('Économie d’énergie', ECO.map(function(o){ return [(o[0] === cur ? '✓  ' : '') + o[1], o[2], function(){
@@ -670,8 +677,9 @@ function fmtDate2(sec){ if (!sec) return 'never'; var d = new Date(sec * 1000); 
 function num(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
 cats = [
-  {id: 'quick', name: 'Réglages rapides', icon: 'bolt', title: 'Réglages rapides', desc: 'Les mêmes raccourcis que le panneau rapide de LG : mode d’image, format, mode son, sortie son, minuterie, réseau et tous les réglages.', info: '/api/net',
-    lg: [['picture', ['pictureMode','aspectRatio']], ['sound', ['soundMode','soundOutput']], ['time', ['sleepTimer']]], build: function(){ var j = this.data || {}, w = j.wired || {}, f = j.wifi || {}; return [
+  {id: 'quick', name: 'Réglages rapides', icon: 'bolt', title: 'Réglages rapides', desc: 'Économie d’énergie, puis les mêmes raccourcis que le panneau rapide de LG : mode d’image, format, mode son, sortie son, minuterie, réseau et tous les réglages.', info: '/api/net',
+    lg: [['picture', ['energySaving','pictureMode','aspectRatio']], ['sound', ['soundMode','soundOutput']], ['time', ['sleepTimer']]], build: function(){ var j = this.data || {}, w = j.wired || {}, f = j.wifi || {}; return [
+    ecoRow(),
     brSld('Rétroéclairage (toutes les entrées et applications)'),
     lgChc('picture', 'pictureMode', 'Mode d’image', '', picModes, true),
     lgChc('picture', 'aspectRatio', 'Format d’image', '', ASPECTS),
