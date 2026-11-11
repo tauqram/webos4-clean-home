@@ -1,5 +1,13 @@
 [
   {
+    "v": "2026.11.06.27",
+    "date": "2026-11-11",
+    "title": "Veille : plus de retour à l'accueil toutes les 2 minutes",
+    "notes": [
+      "Toutes les deux minutes environ, la veille s'arrêtait d'elle-même : l'accueil réapparaissait quelques secondes avant que la veille reparte. La cause était un faux mouvement de la flèche de la télécommande, envoyé par la télé. La veille ne s'arrête désormais que si la flèche bouge vraiment, ou quand on appuie sur une touche."
+    ]
+  },
+  {
     "v": "2026.11.06.26",
     "date": "2026-11-11",
     "title": "Icône choisie plus lumineuse, contour sur les icônes sombres",

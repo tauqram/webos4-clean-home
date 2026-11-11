@@ -1262,10 +1262,11 @@ document.addEventListener('wheel', function(e){
 });
 // the compositor sends mousemove events without any real motion (a window appears or goes away, e.g. LG's invisible saver during the swap):
 // only a real move of the pointer (more than 12 px from where it was) wakes the screensaver (Sam, 2026-11-11: Home showed during the saver)
-var mvX = -1, mvY = -1;
+// A real move is a stream of events: it takes 3 events that each moved more than 12 px within 0.6 s (a single jump, e.g. to 0,0, is ignored).
+var mvX = -1, mvY = -1, mvN = 0, mvAt = 0;
 document.addEventListener('mousemove', function(e){
-  var real = mvX >= 0 && (Math.abs(e.clientX - mvX) > 12 || Math.abs(e.clientY - mvY) > 12); mvX = e.clientX; mvY = e.clientY;
-  if (saverOn) { if (real) saverStop('pointer'); return; }
+  var moved = mvX >= 0 && (Math.abs(e.clientX - mvX) > 12 || Math.abs(e.clientY - mvY) > 12), now = Date.now(); mvX = e.clientX; mvY = e.clientY;
+  if (saverOn) { if (moved) { mvN = now - mvAt < 600 ? mvN + 1 : 1; mvAt = now; if (mvN >= 3) { mvN = 0; saverStop('pointer'); } } return; }
   activity();
 });
 function upTo(n, re, stop){ while (n && n !== stop) { if (n.className && re.test(n.className)) return n; n = n.parentNode; } return null; }
