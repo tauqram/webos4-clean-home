@@ -594,3 +594,6 @@ Sam (on .24, 2026-11-11): Home still shows during the screensaver and when the l
 ### 2026.11.06.27 - Screensaver: the trace confirms the cause; pointer wake needs a real stream of motion
 
 Sam's trace (2026-11-11, on .24): tvpower starts LG's saver every 2-2.5 min while ours runs; each time saver-take.sh logged `ours already on: no` and the page logged `saver on` again right after the swap, with no `page hidden` line: our saver had been stopped just before, by an input event while LG's window appeared (only key / mousemove stop it). That matches the motionless mousemove theory of .25. On top of .25 (12 px threshold) a pointer wake now needs 3 events that each moved more than 12 px within 0.6 s, so a single jump of the reported position (for example to 0,0 when a window appears) is ignored too. Tested in headless Chromium (jumps 500,500 -> 0,0 -> 500,500: saver stays; a 3-event stream: saver stops). Undo: revert the commit.
+
+### 2026.11.06.28 - M6+ short name survives title changes
+- `shortName()` in `tv/launcher/app.js` now compares `CFG.nameByTitle` keys with the app title on letters and digits only, ignoring case (the M6 app renamed itself "M6+ TV, Replay, Streaming" after an update, so the exact-title match failed and the long name came back). Launcher-only; undo = revert the commit.

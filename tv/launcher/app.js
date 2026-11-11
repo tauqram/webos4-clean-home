@@ -210,7 +210,10 @@ function glowFor(a){
 // the name under an icon: our own short name if we have one, else the store title cut at its tagline (« Spotify - Musique et podcasts » -> « Spotify »),
 // and shouting words written in capitals (CANAL+, NETFLIX) in normal case; short acronyms (TV, HDMI, TF1) stay as they are
 function shortName(t){
-  t = String(t || ''); if (CFG.nameByTitle[t]) return CFG.nameByTitle[t];
+  t = String(t || '');
+  // titles change with app updates ("M6 TV Replay Streaming" became "M6+ TV, Replay, Streaming"): compare letters and digits only, ignoring case
+  var key = function(x){ return x.toLowerCase().replace(/[^a-z0-9]/g, ''); }, k = key(t), n;
+  for (n in CFG.nameByTitle) if (key(n) === k) return CFG.nameByTitle[n];
   var s = t.split(/\s+[-\u2013\u2014:|]\s+|\s*[(\[]/)[0].replace(/\s+$/, '') || t;
   return s.replace(/[A-Z\u00C0-\u00DE]{5,}/g, function(w){ return w.charAt(0) + w.slice(1).toLowerCase(); });
 }
