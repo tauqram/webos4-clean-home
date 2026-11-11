@@ -1,5 +1,13 @@
 [
   {
+    "v": "2026.11.06.25",
+    "date": "2026-11-11",
+    "title": "Veille : ne s'interrompt plus toute seule",
+    "notes": [
+      "La veille pouvait s'arrêter d'elle-même (l'accueil réapparaissait, puis la veille repartait avec un autre fond) : la télé envoyait parfois un faux mouvement de la flèche de la télécommande. La veille ne s'arrête maintenant que si la flèche bouge vraiment, ou quand on appuie sur une touche."
+    ]
+  },
+  {
     "v": "2026.11.06.24",
     "date": "2026-11-06",
     "title": "Veille : aurore fluide, fond qui ne saute plus",

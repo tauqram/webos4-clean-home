@@ -63,7 +63,8 @@ function mockFor(path){
 function api(path, cb, timeout){ if (MOCK) { setTimeout(function(){ cb(null, clone(mockFor(path))); }, 15); return; } xhr('GET', API + path, null, cb, timeout || 12000); }
 function apiPost(path, body, cb, timeout){ if (MOCK) { setTimeout(function(){ (cb || noop)(null, mockFor(path.split('?')[0]) || {ok: true, returnValue: true}); }, 15); return; } xhr('POST', API + path, body, cb || noop, timeout || 12000); }
 var logN = 0;
-function dlog(m){ if (MOCK || logN++ > 200) return; try { xhr('POST', API + '/api/log', String(m), noop, 3000); } catch(e){} }
+var logT = 0;   // dlog: at most 200 lines an hour
+function dlog(m){ if (Date.now() - logT > 3600000) { logT = Date.now(); logN = 0; } if (MOCK || logN++ > 200) return; try { xhr('POST', API + '/api/log', String(m), noop, 3000); } catch(e){} }
 window.onerror = function(m, u, l){ dlog('JSERR ' + m + ' @' + l); };
 function toast(m){ var t = $('toast'); t.textContent = m; t.className = 'on'; clearTimeout(toast.h); toast.h = setTimeout(function(){ t.className = ''; }, 3200); }
 // a note on Home when a newer version of this project is on GitHub (selfupdate.sh keeps the facts; this only reads them) and the result of the last install
@@ -411,7 +412,7 @@ function blDim(){
 function blRestore(){ clearInterval(blT); if (blOn) { blOn = false; api('/api/backlight?v=restore', noop, 15000); } }
 function saverStart(keep){
   if (saverOn || document.hidden || mstack.length || settingsOn || SETMODE) return;
-  clearTimeout(saverStop.t); saverOn = true; lastT = lastD = ''; tick(); wxRender();
+  clearTimeout(saverStop.t); saverOn = true; saverStart.at = Date.now(); lastT = lastD = ''; tick(); wxRender();
   // free the Home background while the screensaver runs: two big photos at once would make the TV swap
   ['bgA', 'bgB'].forEach(function(id){ var l = $(id); l.className = 'bgl'; layerStage(l).lastChild.removeAttribute('src'); }); setBodyBg(false);
   var withPhotos = S.saver.photos && photos.length > 0 && !LOWMEM;
@@ -423,8 +424,9 @@ function saverStart(keep){
   dlog('saver on photos=' + withPhotos);
   setTimeout(function(){ if (saverOn) saverPerf(); }, 8000);
 }
-function saverStop(){
+function saverStop(why){
   if (!saverOn) return;
+  dlog('saver: stopped by ' + (why || 'code') + ' after ' + Math.round((Date.now() - (saverStart.at || Date.now())) / 1000) + ' s');
   // leaving: the saver keeps exactly its look (clock, animation, dim) and only fades out over Home (class 'leaving'
   // instead of 'on'); everything is reset once it is invisible. Before, the clock fell back to other styles and
   // grew on a bare black screen during the fade (Sam, 2026-11-06).
@@ -1126,7 +1128,7 @@ var KEYS = {37: 'L', 38: 'U', 39: 'R', 40: 'D'};
 function onKey(e){
   var k = e.keyCode, wasSaver = saverOn;
   activity();
-  if (wasSaver) { saverStop(); e.preventDefault(); return; }
+  if (wasSaver) { saverStop('key ' + k); e.preventDefault(); return; }
   var m = mtop();
   if (m === 'keypad') { keypadKey(k, e); e.preventDefault(); return; }
   if (m === 'qr') { if (k === 461 || k === 27 || k === 8 || k === 13) qrClose(); e.preventDefault(); return; }
@@ -1246,7 +1248,14 @@ document.addEventListener('wheel', function(e){
   var k = e.deltaY > 0 ? 40 : e.deltaY < 0 ? 38 : 0; if (!k) return;
   onKey({keyCode: k, preventDefault: function(){ try { e.preventDefault(); } catch (x) {} }});
 });
-document.addEventListener('mousemove', function(){ if (saverOn) saverStop(); activity(); });
+// the compositor sends mousemove events without any real motion (a window appears or goes away, e.g. LG's invisible saver during the swap):
+// only a real move of the pointer (more than 12 px from where it was) wakes the screensaver (Sam, 2026-11-11: Home showed during the saver)
+var mvX = -1, mvY = -1;
+document.addEventListener('mousemove', function(e){
+  var real = mvX >= 0 && (Math.abs(e.clientX - mvX) > 12 || Math.abs(e.clientY - mvY) > 12); mvX = e.clientX; mvY = e.clientY;
+  if (saverOn) { if (real) saverStop('pointer'); return; }
+  activity();
+});
 function upTo(n, re, stop){ while (n && n !== stop) { if (n.className && re.test(n.className)) return n; n = n.parentNode; } return null; }
 // pointer (if it ever shows): hover moves the highlight on Home and on the Settings rail, a click does what OK does
 document.addEventListener('mouseover', function(e){
@@ -1295,7 +1304,7 @@ function onShow(){
 // the saver, and a relaunch asks saver-take first: if it was the swap, the saver simply stays as it is.
 var takeAt = 0;
 function saverTake(cb){ if (Date.now() - takeAt < 5000) return cb(true); api('/api/saver/take', function(err, j){ if (j && j.take) takeAt = Date.now(); cb(Date.now() - takeAt < 5000); }); }
-function onHide(){ clearTimeout(idleT); clearTimeout(onHide.t); if (saverOn) { dlog('saver: page hidden'); onHide.t = setTimeout(function(){ if (saverOn && document.hidden) { dlog('saver: still hidden after 12 s, stopped'); saverStop(); } }, 12000); } if (mtop() === 'panel') panelClose(); }
+function onHide(){ clearTimeout(idleT); clearTimeout(onHide.t); if (saverOn) { dlog('saver: page hidden'); onHide.t = setTimeout(function(){ if (saverOn && document.hidden) { saverStop('page hidden 12 s'); } }, 12000); } if (mtop() === 'panel') panelClose(); }
 
 if (INPMODE) {
   /* ---- Inputs overlay: only the Inputs list (opened by the Input / Guide keys); a second press of the key (webOSRelaunch) closes it ---- */
@@ -1316,7 +1325,7 @@ if (INPMODE) {
 } else {
   document.addEventListener('visibilitychange', function(){ if (document.hidden) onHide(); else { if (saverOn) { if (onHide.t) dlog('saver: page shown again'); clearTimeout(onHide.t); saverTake(noop); return; } if (!settingsOn) focusItem(1, 0); onShow(); } });
   document.addEventListener('webOSRelaunch', function(){
-    if (saverOn) { saverTake(function(take){ if (take) { clearTimeout(onHide.t); dlog('saver kept (LG saver swap)'); } else { saverStop(); relaunched(); } }); return; }
+    if (saverOn) { saverTake(function(take){ if (take) { clearTimeout(onHide.t); dlog('saver kept (LG saver swap)'); } else { saverStop('Home relaunch'); relaunched(); } }); return; }
     relaunched();
   });
   function relaunched(){ while (mstack.length) { var t = mtop(); if (t === 'settings') closeSettings(); else if (t === 'panel') panelClose(); else if (t === 'qr') qrClose(); else if (t === 'keypad') keypadClose(); else if (t === 'editor') edClose(); else mstack.pop(); } focusItem(1, 0); onShow(); }
@@ -1352,7 +1361,7 @@ if (INPMODE) {
   function memMode(on){ if (LOWMEM === on) return; LOWMEM = on; dlog('memory mode ' + (on ? 'low' : 'normal')); bgApply(true); }
   function uiSettings(){
     if (settingsOn) { closeSettings(); return; }
-    if (saverOn) saverStop();
+    if (saverOn) saverStop('settings key');
     while (mstack.length) { var t = mtop(); if (t === 'panel') panelClose(); else if (t === 'qr') qrClose(); else if (t === 'keypad') keypadClose(); else if (t === 'editor') edClose(); else mstack.pop(); }
     openSettings(); api('/api/qs?m=inhome-settings-open', noop);
   }
