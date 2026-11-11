@@ -276,7 +276,7 @@ function loadApps(cb){
 }
 var lastFocus = null, glowSide = 0;
 // the large line above the rows names whatever has the focus
-var HERO_BTN = {'b-eco': ['Économie d’énergie', 'Baisse la luminosité de l’écran, pour le soir'], 'b-theme': ['Thème', 'Les couleurs et le fond de l’accueil'], 'b-inputs': ['Entrées', 'HDMI, TV en direct et autres sources'], 'b-net': ['Réseau', 'Connexion et adresse de la TV'], 'b-settings': ['Réglages', 'Image, son, veille et confidentialité']};
+var HERO_BTN = {'b-eco': ['Économie d’énergie', 'Baisse la luminosité de l’écran, pour le soir'], 'b-theme': ['Thème', 'Le fond de l’accueil et l’écran de veille'], 'b-inputs': ['Entrées', 'HDMI, TV en direct et autres sources'], 'b-net': ['Réseau', 'Connexion et adresse de la TV'], 'b-settings': ['Réglages', 'Image, son, veille et confidentialité']};
 function setHero(e){
   var t = $('htitle'), s = $('hsub'); if (!t || !s) return;
   var b = HERO_BTN[e.id];
@@ -524,10 +524,62 @@ function openEco(){
   });
 }
 // the header's brush button: the theme list straight from Home (the remote's Input key still opens the inputs)
-function openThemes(){
-  var o = window.Theme ? Theme.options() : [['auto', 'Automatique']], cur = S.theme || 'auto', at = 0;
-  panelOpen('Thème', o.map(function(x, i){ if (x[0] === cur) at = i; return [(x[0] === cur ? '✓  ' : '') + x[1], '', function(){ panelClose(); if (x[0] !== (S.theme || 'auto')) setPath('theme', x[0]); }]; }));
-  panelFocus(at);
+// Theme picker (the brush button): tab Accueil = Home themes, tab Écran de veille = what the screensaver shows. Each choice is a
+// preview card (bg/pv-<tab>-<id>.webp, made on the PC by tools/make-theme-thumbs.js) in a carousel; OK applies it and closes.
+var THP = null;
+var TH_DESC = {auto: 'Change avec les saisons : Noël du 1er décembre au 6 janvier, Aurore le reste de l’année', noir: 'Noir pur : les pixels de l’OLED restent éteints derrière tes apps', aurore: 'Des voiles de lumière verte et bleue en haut de l’écran',
+  bleunuit: 'Un ciel de nuit bleu profond, quelques étoiles', horizon: 'La courbe lumineuse d’une planète au lever du soleil', ocean: 'La lune qui se reflète sur une mer calme', dunes: 'Des dunes de sable chaudes au crépuscule',
+  degrade: 'Un dégradé doux du violet au bleu', lignes: 'De fines lignes dorées qui ondulent', studio: 'Un gris neutre et doux, comme un fond de studio', noel: 'Une nuit d’hiver où la neige tombe doucement'};
+var SV_OPTS = [['auto', 'Alternance', 'Aurore, Éclipse ou Soie : une différente à chaque fois'], ['aurore', 'Aurore boréale', 'Des voiles de lumière qui ondulent lentement'], ['eclipse', 'Éclipse', 'Un anneau de lumière autour d’un astre noir, qui tourne doucement'],
+  ['soie', 'Soie', 'Des rubans de lumière fins comme de la soie'], ['fireworks', 'Feux d’artifice', 'Une gerbe à la fois, l’écran reste noir entre deux'], ['photos', 'Photos de la galerie', ''], ['none', 'Écran noir', 'Rien que l’heure, sur un écran noir']];
+function thpItems(tab){
+  if (tab === 'home') return (window.Theme ? Theme.options() : [['auto', 'Automatique']]).map(function(x){ return [x[0], x[0] === 'auto' ? 'Automatique' : x[1], TH_DESC[x[0]] || '']; });
+  return SV_OPTS.map(function(o){ return o[0] !== 'photos' ? o : [o[0], o[1], photos.length ? 'Tes photos (' + photos.length + '), lentement, avec l’heure par-dessus' : 'Ajoute d’abord des photos depuis ton téléphone : Réglages › Galerie photo']; });
+}
+function thpCur(tab){
+  if (tab === 'home') return S.theme || 'auto';
+  if (S.saver.photos && photos.length) return 'photos';
+  var f = S.saver.fx || 'auto'; return f === 'theme' ? 'auto' : f;
+}
+function openThemes(tab){
+  THP = {tab: tab || 'home', i: 0, tabs: false, items: [], cards: []};
+  $('thp').className = 'on'; cls(document.body, 'thpon', true); if (mtop() !== 'themes') mpush('themes'); thpRender();
+}
+function thpRender(){
+  var t = THP, box = $('thtrack'), cur = thpCur(t.tab); box.innerHTML = ''; t.items = thpItems(t.tab); t.cards = []; t.i = 0;
+  t.items.forEach(function(o, k){
+    var c = el('div', 'thc' + (o[0] === cur ? ' cur' : '')), im = el('div', 'im'), n = el('div', 'tn');
+    im.style.backgroundImage = 'url(bg/pv-' + (t.tab === 'home' ? 'th-' : 'sv-') + o[0] + '.webp)';
+    im.innerHTML = '<div class="ck"><svg viewBox="0 0 24 24"><path d="M7 12.5l3.2 3.2L17 9"/></svg></div>';
+    n.textContent = o[1]; c.appendChild(im); c.appendChild(n); box.appendChild(c); t.cards.push(c); if (o[0] === cur) t.i = k;
+  });
+  $('tht-home').className = 'tht' + (t.tab === 'home' ? ' sel' : ''); $('tht-saver').className = 'tht' + (t.tab === 'saver' ? ' sel' : '');
+  box.style.webkitTransition = box.style.transition = 'none'; thpFocus(t.i); box.offsetWidth; box.style.webkitTransition = box.style.transition = '';
+}
+function thpFocus(i){
+  var t = THP; t.i = Math.max(0, Math.min(t.cards.length - 1, i));
+  t.cards.forEach(function(c, k){ cls(c, 'foc', k === t.i); });
+  var x = 60 - 16 - t.i * 35.2; $('thtrack').style.webkitTransform = $('thtrack').style.transform = 'translateX(' + x + 'rem)';      // the focused card in the middle of the screen (120 rem wide)
+  $('thdesc').textContent = t.items[t.i][2]; $('thp').className = 'on' + (t.tabs ? ' ontabs' : '');
+}
+function thpPick(){
+  var t = THP, v = t.items[t.i][0], name = t.items[t.i][1];
+  if (t.tab === 'home') { if (v !== (S.theme || 'auto')) setPath('theme', v); toast('Thème de l’accueil : ' + name); }
+  else { if (v === 'photos') { if (!S.saver.photos) setPath('saver.photos', true); } else { if (S.saver.photos) setPath('saver.photos', false); setPath('saver.fx', v); } toast('Écran de veille : ' + name); }
+  thpClose();
+}
+function thpClose(){ if (mtop() === 'themes') mpop('themes'); $('thp').className = ''; cls(document.body, 'thpon', false); $('thtrack').innerHTML = ''; THP = null; }      // the previews are dropped: no picture kept in memory
+function thpKey(k){
+  var t = THP; if (!t) return;
+  if (k === 461 || k === 27 || k === 8) { thpClose(); return; }
+  if (t.tabs) {
+    if (k === 37 || k === 39) { var nt = k === 37 ? 'home' : 'saver'; if (nt !== t.tab) { t.tab = nt; thpRender(); } }
+    else if (k === 40 || k === 13) { t.tabs = false; thpFocus(t.i); }
+    return;
+  }
+  if (k === 37) thpFocus(t.i - 1); else if (k === 39) thpFocus(t.i + 1);
+  else if (k === 38) { t.tabs = true; thpFocus(t.i); }
+  else if (k === 13) thpPick();
 }
 function openInputs(){ panelOpen('Entrées', CFG.inputs.map(function(i){ return [i[1], '', function(){ panelClose(); launch(i[0]); }]; })); }
 function openNet(){
@@ -1164,6 +1216,7 @@ function onKey(e){
     else if (k === 461 || k === 27 || k === 8 || k === 37) panelClose();
     e.preventDefault(); return;
   }
+  if (m === 'themes') { thpKey(k); e.preventDefault(); return; }
   if (m === 'editor') { edKey(k); e.preventDefault(); return; }
   if (m === 'settings') { settingsKey(k, e); e.preventDefault(); return; }
   if (m === 'tedit') { tedKey(k, e); e.preventDefault(); return; }
@@ -1331,7 +1384,7 @@ function onShow(){
 // the saver, and a relaunch asks saver-take first: if it was the swap, the saver simply stays as it is.
 var takeAt = 0;
 function saverTake(cb){ if (Date.now() - takeAt < 5000) return cb(true); api('/api/saver/take', function(err, j){ if (j && j.take) takeAt = Date.now(); cb(Date.now() - takeAt < 5000); }); }
-function onHide(){ clearTimeout(idleT); clearTimeout(onHide.t); if (saverOn) { dlog('saver: page hidden'); onHide.t = setTimeout(function(){ if (saverOn && document.hidden) { saverStop('page hidden 12 s'); } }, 12000); } if (mtop() === 'panel') panelClose(); }
+function onHide(){ clearTimeout(idleT); clearTimeout(onHide.t); if (saverOn) { dlog('saver: page hidden'); onHide.t = setTimeout(function(){ if (saverOn && document.hidden) { saverStop('page hidden 12 s'); } }, 12000); } if (mtop() === 'panel') panelClose(); if (mtop() === 'themes') thpClose(); }
 
 if (INPMODE) {
   /* ---- Inputs overlay: only the Inputs list (opened by the Input / Guide keys); a second press of the key (webOSRelaunch) closes it ---- */
@@ -1355,7 +1408,7 @@ if (INPMODE) {
     if (saverOn) { saverTake(function(take){ if (take) { clearTimeout(onHide.t); dlog('saver kept (LG saver swap)'); } else { saverStop('Home relaunch'); relaunched(); } }); return; }
     relaunched();
   });
-  function relaunched(){ while (mstack.length) { var t = mtop(); if (t === 'settings') closeSettings(); else if (t === 'panel') panelClose(); else if (t === 'qr') qrClose(); else if (t === 'keypad') keypadClose(); else if (t === 'editor') edClose(); else mstack.pop(); } focusItem(1, 0); onShow(); }
+  function relaunched(){ while (mstack.length) { var t = mtop(); if (t === 'settings') closeSettings(); else if (t === 'panel') panelClose(); else if (t === 'themes') thpClose(); else if (t === 'qr') qrClose(); else if (t === 'keypad') keypadClose(); else if (t === 'editor') edClose(); else mstack.pop(); } focusItem(1, 0); onShow(); }
   window.addEventListener('resize', function(){ layoutRows(); });
   // the Settings overlay sits on top of Home without hiding it, so Home never gets a "visible" event: pick up what changed when the overlay closes
   window.addEventListener('focus', function(){ if (document.hidden || saverOn) return; updPoll(); loadSettings(); refreshPhotos(function(ch){ if (ch) { if (!hasBg()) bgApply(true); else if (photos[bgIx]) bgShow(bgIx); } }); });
@@ -1389,7 +1442,7 @@ if (INPMODE) {
   function uiSettings(){
     if (settingsOn) { closeSettings(); return; }
     if (saverOn) saverStop('settings key');
-    while (mstack.length) { var t = mtop(); if (t === 'panel') panelClose(); else if (t === 'qr') qrClose(); else if (t === 'keypad') keypadClose(); else if (t === 'editor') edClose(); else mstack.pop(); }
+    while (mstack.length) { var t = mtop(); if (t === 'panel') panelClose(); else if (t === 'themes') thpClose(); else if (t === 'qr') qrClose(); else if (t === 'keypad') keypadClose(); else if (t === 'editor') edClose(); else mstack.pop(); }
     openSettings(); api('/api/qs?m=inhome-settings-open', noop);
   }
   setTimeout(uiWait, 1500);
@@ -1400,5 +1453,5 @@ if (INPMODE) {
   if (MOCK && /edit=(\S+?)(&|$)/.test(location.search)) setTimeout(function(){ edOpen(/edit=(\S+?)(&|$)/.exec(location.search)[1]); }, 1500);
 }
 applyUi();
-window.__tvhome = {set: setPath, saver: saverStart, stop: saverStop, bg: function(){ bgShow(bgIx + 1); }, settings: openSettings, photos: function(){ return photos.length; }, S: function(){ return S; }, wx: function(){ return wx; }, crops: function(){ return crops; }, edit: edOpen, key: function(k){ document.dispatchEvent(new KeyboardEvent('keydown', {keyCode: k})); document.dispatchEvent(new KeyboardEvent('keyup', {keyCode: k})); }};
+window.__tvhome = {set: setPath, saver: saverStart, stop: saverStop, bg: function(){ bgShow(bgIx + 1); }, settings: openSettings, themes: openThemes, photos: function(){ return photos.length; }, S: function(){ return S; }, wx: function(){ return wx; }, crops: function(){ return crops; }, edit: edOpen, key: function(k){ document.dispatchEvent(new KeyboardEvent('keydown', {keyCode: k})); document.dispatchEvent(new KeyboardEvent('keyup', {keyCode: k})); }};
 })();

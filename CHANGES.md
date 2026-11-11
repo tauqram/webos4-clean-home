@@ -604,3 +604,9 @@ Sam: paused on Canal+ (or on Canal+'s home), the TV went to the screensaver and 
 
 ### 2026.11.06.30 - Energy saving first in Quick settings; names cut at a comma
 - `tv/launcher/app.js`: `ecoRow()` puts LG's `picture.energySaving` (same five choices as the Home sun/moon button, `ECO`) as the first row of Settings -> Quick settings; a change also updates the Home button (`ecoShow`, now a no-op on the overlay page that has no header). `shortName()` also cuts a title at ", " (the M6 app's new title uses commas). Launcher-only; undo = revert the commit. Previewed on the PC; not yet seen on the TV.
+
+### 2026.11.06.31 - Home without row titles; new Theme picker (Home / screensaver)
+- `tv/launcher/index.html`: the "Favoris" / "Applications" row labels are gone. New `#thp` sheet (CSS block "Theme picker").
+- `tv/launcher/app.js`: `openThemes()` now opens a carousel of 16:9 previews with two tabs: Accueil (`S.theme`, same list as `Theme.options()`) and Écran de veille (`saver.fx` auto/aurore/eclipse/soie/fireworks/none, or `saver.photos`). ◀ ▶ browse, ▲ tabs, OK applies and closes, Back closes. Home content (`#view`, `#updpill`) fades out while it is open (`body.thpon`); the previews are removed from the DOM on close.
+- Previews: `tv/launcher/bg/pv-th-*.webp` / `pv-sv-*.webp` (960x540, about 230 KB in all, copied to RAM with the other bg pictures) made by `tools/make-theme-thumbs.js` (+ `.py`): the preview page with icons replaced by plain squares and the clock at 10:09, no photos. Re-run after changing a theme's look.
+- Undo: revert the commit. Previewed on the PC; not yet seen on the TV.

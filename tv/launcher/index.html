@@ -479,6 +479,28 @@ body.cf-outfit #saver.sv #sinfo .t{font-family:"ClockOutfit","Inter",sans-serif;
 #saver.sv #sinfo .w.on{display:inline-block;margin-left:2.4rem}
 #saver.sv #sinfo .w svg{display:inline-block;vertical-align:top;width:2.6rem;height:2.6rem;margin:0 .9rem 0 0;opacity:.85}
 #saver.sv #sinfo .w .p{display:none}
+/* Theme picker (Home button): two tabs, Home themes / screensaver looks, as a carousel of previews (bg/pv-*.webp, tools/make-theme-thumbs.js) */
+#thp{position:fixed;left:0;top:0;width:100%;height:100%;z-index:60;display:none;background:rgba(4,5,8,.78)}
+#thp.on{display:block}
+body.thpon #view,body.thpon #updpill{opacity:0;transition:opacity .2s}      /* only the theme background stays behind the picker */
+#thtabs{position:absolute;top:6rem;left:50%;transform:translateX(-50%);display:flex;padding:.5rem;border-radius:3rem;background:rgba(255,255,255,.08);white-space:nowrap}
+.tht{padding:1.1rem 3rem;border-radius:2.6rem;font-size:1.7rem;font-weight:600;color:#9aa1ae;transition:background .2s,color .2s}
+.tht.sel{background:rgba(255,255,255,.16);color:#fff}
+#thp.ontabs .tht.sel{background:#fff;color:#0a0c11}
+#thrail{position:absolute;left:0;top:14rem;width:100%;height:34rem;overflow:hidden}
+#thtrack{position:absolute;left:0;top:5rem;white-space:nowrap;transition:transform .45s cubic-bezier(.2,0,0,1)}
+.thc{position:relative;display:inline-block;vertical-align:top;width:32rem;margin-right:3.2rem;white-space:normal}
+.thc .im{position:relative;width:32rem;height:18rem;border-radius:1.8rem;background:#0c0e12 center/cover no-repeat;opacity:.5;
+  box-shadow:0 1rem 2rem rgba(0,0,0,.5);transition:transform .3s cubic-bezier(.2,0,0,1),opacity .25s,box-shadow .3s}
+.thc.foc .im{transform:scale(1.1);opacity:1;box-shadow:0 2.4rem 4rem -.8rem rgba(0,0,0,.85),0 .6rem 1.2rem rgba(0,0,0,.4)}
+#thp.ontabs .thc.foc .im{transform:none;opacity:.75}
+.thc .ck{position:absolute;right:1.1rem;top:1.1rem;width:3rem;height:3rem;border-radius:50%;background:#fff;display:none;box-shadow:0 .3rem .8rem rgba(0,0,0,.5)}
+.thc .ck svg{width:3rem;height:3rem;fill:none;stroke:#0a0c11;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.thc.cur .ck{display:block}
+.thc .tn{margin-top:2.4rem;text-align:center;font-size:1.7rem;font-weight:500;color:#8d94a1;transition:color .25s,transform .3s cubic-bezier(.2,0,0,1)}
+.thc.foc .tn{color:#fff;transform:translateY(.9rem)}
+#thdesc{position:absolute;left:10rem;right:10rem;top:50rem;text-align:center;font-size:1.6rem;line-height:1.45;color:#aeb4c0;min-height:4.6rem}
+#thhint{position:absolute;left:0;right:0;bottom:4.5rem;text-align:center;font-size:1.25rem;color:#6f7683}
 </style>
 <link rel="stylesheet" href="backgrounds.css">
 </head>
@@ -498,11 +520,12 @@ body.cf-outfit #saver.sv #sinfo .t{font-family:"ClockOutfit","Inter",sans-serif;
     </div>
   </div>
   <div id="hero"><div id="htitle"></div><div id="hsub"></div></div>
-  <div class="row"><div class="rowlabel">Favoris</div><div id="dock"></div></div>
-  <div class="row"><div class="rowlabel">Applications</div><div id="grid"></div></div>
+  <div class="row"><div id="dock"></div></div>
+  <div class="row"><div id="grid"></div></div>
 </div>
 <div id="saver"><canvas id="fx"></canvas><div id="svfx"></div><div id="sglow"></div><div id="sdim"></div><div id="scrimS"></div>
   <div id="sinfo"><div class="t"></div><div class="d"></div><div class="w"></div></div></div>
+<div id="thp"><div id="thtabs"><div class="tht" id="tht-home">Accueil</div><div class="tht" id="tht-saver">Écran de veille</div></div><div id="thrail"><div id="thtrack"></div></div><div id="thdesc"></div><div id="thhint">◀ ▶ parcourir &nbsp;&middot;&nbsp; OK choisir &nbsp;&middot;&nbsp; ▲ Accueil / Écran de veille &nbsp;&middot;&nbsp; Retour pour fermer</div></div>
 <div id="panel"><div id="pbox"><div id="ptitle"></div><div id="plist"></div><div id="phint">OK pour choisir &nbsp;&middot;&nbsp; Retour pour fermer</div></div></div>
 <div id="settings">
   <div id="sethead"><h1>Réglages</h1><span>&#9664; &#9654; modifier &nbsp;&middot;&nbsp; OK choisir &nbsp;&middot;&nbsp; Retour</span></div>
