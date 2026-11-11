@@ -26,7 +26,7 @@ body.hasbg #scrim2{opacity:1}
 body.hasbg #glowA.on,body.hasbg #glowB.on{opacity:.28}
 body.hasbg .nm,body.hasbg #date,body.hasbg #wdesc,body.hasbg .rowlabel{color:#d5dbe8;text-shadow:0 .1rem .5rem rgba(0,0,0,.8)}
 body.hasbg #time,body.hasbg #wtemp{text-shadow:0 .1rem .8rem rgba(0,0,0,.6)}
-#view{position:fixed;left:0;top:0;width:100%;height:100%;will-change:transform;transition:transform .35s ease}
+#view{position:fixed;left:0;top:0;width:100%;height:100%;will-change:transform;transition:transform .5s cubic-bezier(.2,0,0,1)}
 body.hasbg .hbtn{background:rgba(8,10,15,.55);color:#cfd6e4}
 body.hasbg .hbtn.foc{color:#fff}
 #header{height:12.8rem;padding:2.6rem 6rem 0 6rem;display:flex;align-items:flex-start;justify-content:space-between}
@@ -442,7 +442,7 @@ body.th-aurore .hill{display:block}
    the other icons fade back. No ring at all, edit mode included. Only transform/opacity animate (Chromium 53, weak GPU). */
 .tile .ring{display:none}
 .tile .ic{transition:transform .3s cubic-bezier(.2,0,0,1),opacity .25s}
-.tile.foc .ic{transform:scale(1.13);box-shadow:0 2.4rem 4rem -.8rem rgba(0,0,0,.8),0 .6rem 1.2rem rgba(0,0,0,.35)}
+.tile.foc .ic{transform:scale(1.13);box-shadow:0 1.2rem 3rem -.2rem rgba(0,0,0,.55),0 0 1.4rem rgba(0,0,0,.3)}
 .tile.foc .nm{transform:translateY(.9rem)}
 /* Apple: the focused icon "gently sways while the surface illuminates"; with arrow keys there is no thumb to follow, so it sways on its own, slowly */
 .tile.foc:not(.edit) .ic{animation:tvsway 9s ease-in-out .6s infinite}
@@ -460,9 +460,9 @@ body.tilefoc:not(.editing) #view .tile:not(.foc) .ic{opacity:.55}
 /* the focused icon lights up a little (Apple: "illumination"): a plain brightness filter on its picture, no light effect drawn over it */
 .tile.foc:not(.edit) .ic img{-webkit-filter:brightness(1.12);filter:brightness(1.12)}
 /* very dark icons (class dk, from app.js): a thin light contour when focused, so you can see where you are */
-.tile.dk.foc .ic,.tile.dk.edit .ic{box-shadow:0 0 0 .14rem rgba(255,255,255,.5),0 2.4rem 4rem -.8rem rgba(0,0,0,.8),0 .6rem 1.2rem rgba(0,0,0,.35)}
+.tile.dk.foc .ic,.tile.dk.edit .ic{box-shadow:0 0 0 .14rem rgba(255,255,255,.5),0 1.2rem 3rem -.2rem rgba(0,0,0,.55),0 0 1.4rem rgba(0,0,0,.3)}
 /* moving an icon (long press): no ring either (Sam 2026-11-06); the icon stays lifted and jiggles, the others fade further back */
-.tile.edit .ic{box-shadow:0 2.4rem 4rem -.8rem rgba(0,0,0,.8),0 .6rem 1.2rem rgba(0,0,0,.35)}
+.tile.edit .ic{box-shadow:0 1.2rem 3rem -.2rem rgba(0,0,0,.55),0 0 1.4rem rgba(0,0,0,.3)}
 body.editing #view .tile:not(.edit) .ic{opacity:.4}
 /* ===== screensaver clock (Sam's choice A, 2026-11-06): the Home clock's typeface, centred low, date and weather on one quiet
    line below. It stays in place: app.js (saverShift) only nudges it by one CSS px every 3 minutes inside a 4 px square,

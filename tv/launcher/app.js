@@ -320,9 +320,13 @@ function focusItem(r, c, keepX){
   if (!keepX) { var rc = e.getBoundingClientRect(); lastX = rc.left + rc.width / 2; }
   setGlow(glowFor(e._app));
   setHero(e);
-  var rc2 = e.getBoundingClientRect(), vh = window.innerHeight, fs = parseFloat(getComputedStyle(document.documentElement).fontSize);
-  var bottom = rc2.bottom + viewY + 5 * fs, want = bottom > vh ? bottom - vh : 0;
-  if (R <= 1) want = 0;
+  // position inside the unscrolled page (offsets, not the on-screen box: that one moves while the page is still sliding)
+  var vh = window.innerHeight, fs = parseFloat(getComputedStyle(document.documentElement).fontSize), top = 0, n = e;
+  while (n && n.id !== 'view') { top += n.offsetTop; n = n.offsetParent; }
+  var bottom = top + e.offsetHeight + 5 * fs, want = bottom > vh ? bottom - vh : 0;
+  // on the app rows the whole page slides up, the way you would scroll down to see the apps: the focused row comes to about the middle (Sam)
+  if (R >= 2) want = Math.max(want, Math.round(top + e.offsetHeight / 2 - vh * 0.52));
+  if (R <= 1 || want < 0) want = 0;
   viewY = want; $('view').style.transform = want ? 'translate3d(0,' + (-want) + 'px,0)' : 'translate3d(0,0,0)';
 }
 function move(dir){

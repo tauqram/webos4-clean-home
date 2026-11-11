@@ -613,3 +613,8 @@ Sam: paused on Canal+ (or on Canal+'s home), the TV went to the screensaver and 
 
 ### 2026.11.06.32 - Home rows back at their old height
 - `tv/launcher/index.html`: the two row labels are back but `visibility:hidden`, so the favourites and app rows sit exactly where they were with the labels (Sam: removing them moved the icons up too close to the clock). Undo: revert the commit.
+
+### 2026.11.06.33 - Home scrolls to the app rows; softer focus shadow
+- `tv/launcher/app.js` focusItem: on the app rows (R >= 2) the page slides up so the focused row's centre is at 52 % of the screen height (position from offsetTop, not the on-screen box which moves during the slide); favourites / header rows go back to 0. `#view` transition .5s cubic-bezier(.2,0,0,1).
+- `tv/launcher/index.html`: focus / edit / dark-icon shadow `0 1.2rem 3rem -.2rem rgba(0,0,0,.55), 0 0 1.4rem rgba(0,0,0,.3)` (was a long downward 2.4rem/4rem drop).
+- Undo: revert the commit. Previewed on the PC; not yet seen on the TV.
